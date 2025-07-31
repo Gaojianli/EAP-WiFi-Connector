@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="eap_methods">
+        <item>PEAP</item>
+        <item>TLS</item>
+        <item>TTLS</item>
+    </string-array>
+
+    <string-array name="phase2_methods">
+        <item>MSCHAPV2</item>
+        <item>GTC</item>
+        <item>PAP</item>
+        <item>CHAP</item>
+    </string-array>
+</resources>
