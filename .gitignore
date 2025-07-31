@@ -1,0 +1,6 @@
+.claude
+.gradle
+.idea
+.kotlin
+app/build
+app/release
