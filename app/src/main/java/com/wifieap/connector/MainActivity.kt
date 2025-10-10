@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.security.KeyChain
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -35,7 +36,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etDomain: TextInputEditText
     private lateinit var spinnerEapMethod: Spinner
     private lateinit var spinnerPhase2: Spinner
-    
+    private lateinit var spinnerCertType: Spinner
+    private lateinit var layoutCertSelection: LinearLayout
+
     private var selectedCertificateUri: Uri? = null
 
     companion object {
@@ -69,6 +72,8 @@ class MainActivity : AppCompatActivity() {
         etDomain = findViewById(R.id.etDomain)
         spinnerEapMethod = findViewById(R.id.spinnerEapMethod)
         spinnerPhase2 = findViewById(R.id.spinnerPhase2)
+        spinnerCertType = findViewById(R.id.spinnerCertType)
+        layoutCertSelection = findViewById(R.id.layoutCertSelection)
     }
 
     private fun setupSpinners() {
@@ -78,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         )
         eapAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerEapMethod.adapter = eapAdapter
-        spinnerEapMethod.setSelection(0) // 默认选择PEAP
+        spinnerEapMethod.setSelection(2) // 默认选择TTLS
 
         // Phase2方法下拉框
         val phase2Adapter = ArrayAdapter.createFromResource(
@@ -86,7 +91,43 @@ class MainActivity : AppCompatActivity() {
         )
         phase2Adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerPhase2.adapter = phase2Adapter
-        spinnerPhase2.setSelection(1) // 默认选择GTC
+        spinnerPhase2.setSelection(2) // 默认选择PAP
+
+        // 证书类型下拉框
+        val certTypeAdapter = ArrayAdapter.createFromResource(
+            this, R.array.cert_types, android.R.layout.simple_spinner_item
+        )
+        certTypeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerCertType.adapter = certTypeAdapter
+        spinnerCertType.setSelection(0) // 默认选择系统证书
+
+        // 监听证书类型选择变化
+        spinnerCertType.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                updateCertSelectionUI(position)
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+    }
+
+    private fun updateCertSelectionUI(certTypePosition: Int) {
+        when (certTypePosition) {
+            0 -> { // 使用系统证书
+                layoutCertSelection.visibility = android.view.View.GONE
+                tvSelectedCert.text = "使用系统证书"
+                selectedCertificateUri = null
+            }
+            1 -> { // 使用内置证书
+                layoutCertSelection.visibility = android.view.View.GONE
+                tvSelectedCert.text = "使用内置证书 (ca.pem)"
+                selectedCertificateUri = null
+            }
+            2 -> { // 选择证书文件
+                layoutCertSelection.visibility = android.view.View.VISIBLE
+                tvSelectedCert.text = "点击选择证书文件"
+                selectedCertificateUri = null
+            }
+        }
     }
 
     private fun setupClickListeners() {
@@ -235,6 +276,7 @@ class MainActivity : AppCompatActivity() {
         connectButton.isEnabled = false
 
         Thread {
+            val certType = spinnerCertType.selectedItemPosition
             val success = wifiConnector.connectToWiFi(
                 ssid = ssid,
                 username = username,
@@ -242,7 +284,8 @@ class MainActivity : AppCompatActivity() {
                 domain = domain,
                 eapMethod = eapMethod,
                 phase2Method = phase2Method,
-                certificateUri = selectedCertificateUri
+                certificateUri = selectedCertificateUri,
+                certType = certType
             )
 
             runOnUiThread {

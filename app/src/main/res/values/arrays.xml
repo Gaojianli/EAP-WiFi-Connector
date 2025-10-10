@@ -12,4 +12,10 @@
         <item>PAP</item>
         <item>CHAP</item>
     </string-array>
+
+    <string-array name="cert_types">
+        <item>使用系统证书</item>
+        <item>使用内置证书</item>
+        <item>选择证书文件</item>
+    </string-array>
 </resources>
