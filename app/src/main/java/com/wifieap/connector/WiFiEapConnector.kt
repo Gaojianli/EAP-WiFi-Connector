@@ -21,7 +21,8 @@ class WiFiEapConnector(private val context: Context) {
         domain: String = "",
         eapMethod: Int = WifiEnterpriseConfig.Eap.PEAP,
         phase2Method: Int = WifiEnterpriseConfig.Phase2.GTC,
-        certificateUri: Uri? = null
+        certificateUri: Uri? = null,
+        certType: Int = 0 // 0: 系统证书, 1: 内置证书, 2: 用户选择证书
     ): Boolean {
         try {
             Log.i(TAG, "Connecting to SSID: $ssid with user: $username")
@@ -46,18 +47,34 @@ class WiFiEapConnector(private val context: Context) {
                         Log.d(TAG, "Set domain: $domain")
                     }
                     
-                    // 加载CA证书
-                    val caCert = if (certificateUri != null) {
-                        loadCertificateFromUri(certificateUri)
-                    } else {
-                        loadBuiltinCertificate()
-                    }
-                    
-                    if (caCert != null) {
-                        caCertificate = caCert
-                        Log.d(TAG, "CA certificate loaded successfully")
-                    } else {
-                        Log.w(TAG, "No CA certificate loaded")
+                    // 根据证书类型加载CA证书
+                    when (certType) {
+                        0 -> { // 使用系统证书
+                            // 不设置任何证书，让系统自己验证
+                            Log.d(TAG, "Using system certificate validation")
+                        }
+                        1 -> { // 使用内置证书
+                            val caCert = loadBuiltinCertificate()
+                            if (caCert != null) {
+                                caCertificate = caCert
+                                Log.d(TAG, "Builtin CA certificate loaded successfully")
+                            } else {
+                                Log.w(TAG, "Failed to load builtin CA certificate")
+                            }
+                        }
+                        2 -> { // 使用用户选择的证书
+                            if (certificateUri != null) {
+                                val caCert = loadCertificateFromUri(certificateUri)
+                                if (caCert != null) {
+                                    caCertificate = caCert
+                                    Log.d(TAG, "User selected CA certificate loaded successfully")
+                                } else {
+                                    Log.w(TAG, "Failed to load user selected CA certificate")
+                                }
+                            } else {
+                                Log.w(TAG, "Certificate URI is null for user selected certificate")
+                            }
+                        }
                     }
                 }
                 
