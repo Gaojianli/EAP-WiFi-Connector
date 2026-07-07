@@ -15,9 +15,9 @@ Provides WPA2-EAP enterprise Wi-Fi connectivity for Android TV devices that have
 
 ## Screenshots
 
-| Select Network | Credentials | Advanced Settings |
-|:---:|:---:|:---:|
-| ![Select Network](screenshots/Screenshot_20260707_144917) | ![Credentials](screenshots/Screenshot_1783404422.png) | ![Advanced Settings](screenshots/Screenshot_1783404415.png) |
+|                        Select Network                         | Credentials | Advanced Settings |
+|:-------------------------------------------------------------:|:---:|:---:|
+| ![Select Network](screenshots/Screenshot_20260707_144917.png) | ![Credentials](screenshots/Screenshot_1783404422.png) | ![Advanced Settings](screenshots/Screenshot_1783404415.png) |
 
 ## Build
 
