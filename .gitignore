@@ -4,3 +4,7 @@
 .kotlin
 app/build
 app/release
+*.keystore
+local.properties
+.DS_Store
+build/

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tv_background">#FF1A1A2E</color>
+    <color name="tv_surface">#FF16213E</color>
+    <color name="tv_primary">#FF0F3460</color>
+    <color name="tv_accent">#FF53A8B6</color>
+    <color name="tv_on_surface">#FFFFFFFF</color>
+    <color name="tv_on_surface_dim">#FFAAAAAA</color>
+    <color name="tv_focus_border">#FF53A8B6</color>
+    <color name="tv_success">#FF4CAF50</color>
+    <color name="tv_error">#FFF44336</color>
+</resources>
