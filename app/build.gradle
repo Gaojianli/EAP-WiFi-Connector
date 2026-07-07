@@ -13,7 +13,7 @@ android {
                 storePassword System.getenv("KEYSTORE_PASSWORD")
                 keyAlias System.getenv("KEY_ALIAS")
                 keyPassword System.getenv("KEY_PASSWORD")
-            } else {
+            } else if (rootProject.file('release.keystore').exists()) {
                 storeFile rootProject.file('release.keystore')
                 storePassword 'wifieap123'
                 keyAlias 'wifi_eap_key'
@@ -36,10 +36,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.release.storeFile != null ? signingConfigs.release : null
         }
         debug {
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.release.storeFile != null ? signingConfigs.release : null
         }
     }
 
