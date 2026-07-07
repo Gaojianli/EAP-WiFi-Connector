@@ -2,7 +2,9 @@ package com.wifieap.connector.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -12,6 +14,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
@@ -116,9 +120,15 @@ fun ConnectingScreen(
                 if (!errorMessage.isNullOrBlank()) {
                     Text(
                         text = errorMessage,
-                        fontSize = 18.sp,
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
                         color = TvOnSurfaceDim,
-                        modifier = Modifier.padding(bottom = 24.dp)
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .heightIn(max = 160.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 24.dp)
                     )
                 }
 

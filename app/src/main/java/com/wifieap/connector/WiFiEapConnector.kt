@@ -2,16 +2,20 @@
 
 package com.wifieap.connector
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiEnterpriseConfig
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import java.io.InputStream
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
@@ -134,14 +138,70 @@ class WiFiEapConnector(private val context: Context) {
                 wifiManager.reconnect()
                 ConnectResult.Success
             } else {
-                Log.e(TAG, "Failed to add WiFi configuration")
-                ConnectResult.Failure(context.getString(R.string.error_add_network_failed))
+                val diagnostic = buildDiagnosticInfo(
+                    networkId = networkId,
+                    eapMethod = eapMethod,
+                    phase2Method = phase2Method,
+                    useSystemCert = useSystemCert,
+                    hasCert = certificateUri != null
+                )
+                Log.e(TAG, "Failed to add WiFi configuration. $diagnostic")
+                ConnectResult.Failure(
+                    "${context.getString(R.string.error_add_network_failed)}\n$diagnostic"
+                )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error connecting to WiFi: ${e.message}")
-            e.printStackTrace()
-            return ConnectResult.Failure(context.getString(R.string.error_exception, e.message ?: e.toString()))
+            val diagnostic = buildDiagnosticInfo(
+                networkId = -1,
+                eapMethod = eapMethod,
+                phase2Method = phase2Method,
+                useSystemCert = useSystemCert,
+                hasCert = certificateUri != null
+            )
+            Log.e(TAG, "Error connecting to WiFi. $diagnostic", e)
+            val exceptionSummary = "${e.javaClass.simpleName}: ${e.message}"
+            ConnectResult.Failure(
+                "${context.getString(R.string.error_exception, exceptionSummary)}\n$diagnostic"
+            )
         }
+    }
+
+    private fun buildDiagnosticInfo(
+        networkId: Int,
+        eapMethod: Int,
+        phase2Method: Int,
+        useSystemCert: Boolean,
+        hasCert: Boolean
+    ): String {
+        val hasLocationPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasChangeWifiPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CHANGE_WIFI_STATE
+        ) == PackageManager.PERMISSION_GRANTED
+        return "addNetwork=$networkId, sdk=${Build.VERSION.SDK_INT}, device=${Build.MANUFACTURER} ${Build.MODEL}, " +
+            "wifiEnabled=${wifiManager.isWifiEnabled}, eapMethod=${eapMethodName(eapMethod)}, " +
+            "phase2=${phase2MethodName(phase2Method)}, useSystemCert=$useSystemCert, hasCert=$hasCert, " +
+            "locationPermission=$hasLocationPermission, changeWifiPermission=$hasChangeWifiPermission"
+    }
+
+    private fun eapMethodName(eapMethod: Int): String = when (eapMethod) {
+        WifiEnterpriseConfig.Eap.PEAP -> "PEAP"
+        WifiEnterpriseConfig.Eap.TLS -> "TLS"
+        WifiEnterpriseConfig.Eap.TTLS -> "TTLS"
+        WifiEnterpriseConfig.Eap.PWD -> "PWD"
+        WifiEnterpriseConfig.Eap.SIM -> "SIM"
+        WifiEnterpriseConfig.Eap.AKA -> "AKA"
+        else -> "UNKNOWN($eapMethod)"
+    }
+
+    private fun phase2MethodName(phase2Method: Int): String = when (phase2Method) {
+        WifiEnterpriseConfig.Phase2.NONE -> "NONE"
+        WifiEnterpriseConfig.Phase2.PAP -> "PAP"
+        WifiEnterpriseConfig.Phase2.MSCHAP -> "MSCHAP"
+        WifiEnterpriseConfig.Phase2.MSCHAPV2 -> "MSCHAPV2"
+        WifiEnterpriseConfig.Phase2.GTC -> "GTC"
+        else -> "UNKNOWN($phase2Method)"
     }
 
     private fun loadCertificateFromUri(uri: Uri): X509Certificate? {
