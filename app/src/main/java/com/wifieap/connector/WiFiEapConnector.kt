@@ -22,6 +22,11 @@ data class WifiNetwork(
     val capabilities: String
 )
 
+sealed class ConnectResult {
+    object Success : ConnectResult()
+    data class Failure(val reason: String) : ConnectResult()
+}
+
 class WiFiEapConnector(private val context: Context) {
     private val wifiManager =
         context.getSystemService(Context.WIFI_SERVICE) as WifiManager
@@ -82,7 +87,7 @@ class WiFiEapConnector(private val context: Context) {
         phase2Method: Int = WifiEnterpriseConfig.Phase2.GTC,
         certificateUri: Uri? = null,
         useSystemCert: Boolean = true
-    ): Boolean {
+    ): ConnectResult {
         try {
             Log.i(TAG, "Connecting to SSID: $ssid with user: $username")
             ensureWifiEnabled()
@@ -122,20 +127,20 @@ class WiFiEapConnector(private val context: Context) {
 
             val networkId = wifiManager.addNetwork(wifiConfig)
 
-            if (networkId != -1) {
+            return if (networkId != -1) {
                 Log.i(TAG, "WiFi configuration added with ID: $networkId")
                 wifiManager.saveConfiguration()
                 wifiManager.enableNetwork(networkId, true)
                 wifiManager.reconnect()
-                return true
+                ConnectResult.Success
             } else {
                 Log.e(TAG, "Failed to add WiFi configuration")
-                return false
+                ConnectResult.Failure(context.getString(R.string.error_add_network_failed))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error connecting to WiFi: ${e.message}")
             e.printStackTrace()
-            return false
+            return ConnectResult.Failure(context.getString(R.string.error_exception, e.message ?: e.toString()))
         }
     }
 

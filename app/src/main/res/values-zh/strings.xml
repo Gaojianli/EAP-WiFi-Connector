@@ -34,6 +34,8 @@
     <string name="connecting">正在连接…</string>
     <string name="connect_success">连接成功</string>
     <string name="connect_failed">连接失败</string>
+    <string name="error_add_network_failed">保存网络配置失败，请检查 EAP 方式、Phase 2 认证和证书设置</string>
+    <string name="error_exception">连接出错：%s</string>
     <string name="btn_done">完成</string>
     <string name="btn_disconnect">断开连接</string>
     <string name="btn_retry">重试</string>

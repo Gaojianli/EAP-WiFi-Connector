@@ -29,6 +29,7 @@ import com.wifieap.connector.ui.theme.TvSurface
 fun ConnectingScreen(
     ssid: String,
     state: ConnectState?,
+    errorMessage: String? = null,
     onRetry: () -> Unit,
     onDone: () -> Unit,
     onDisconnect: () -> Unit
@@ -109,8 +110,17 @@ fun ConnectingScreen(
                     text = stringResource(R.string.connect_failed),
                     fontSize = 32.sp,
                     color = TvError,
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    modifier = Modifier.padding(bottom = if (errorMessage.isNullOrBlank()) 24.dp else 8.dp)
                 )
+
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(
+                        text = errorMessage,
+                        fontSize = 18.sp,
+                        color = TvOnSurfaceDim,
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    )
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Surface(

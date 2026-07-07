@@ -5,6 +5,7 @@ import android.net.wifi.WifiEnterpriseConfig
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,6 +19,31 @@ import com.wifieap.connector.ui.theme.WifiEapTheme
 enum class WizardStep { SelectNetwork, Credentials, Connecting }
 enum class ConnectState { Connecting, Success, Failed }
 
+/**
+ * Hoisted form state for CredentialsScreen so that field values survive
+ * navigation back and forth between Credentials and Connecting screens
+ * (e.g. when the user hits Retry after a failed connection).
+ */
+class CredentialsFormState {
+    var editSsid by mutableStateOf("")
+    var username by mutableStateOf("")
+    var password by mutableStateOf("")
+    var domain by mutableStateOf("")
+    var eapIndex by mutableIntStateOf(2)
+    var phase2Index by mutableIntStateOf(2)
+    var useSystemCert by mutableStateOf(true)
+
+    fun resetFor(ssid: String) {
+        editSsid = ssid
+        username = ""
+        password = ""
+        domain = ""
+        eapIndex = 2
+        phase2Index = 2
+        useSystemCert = true
+    }
+}
+
 @Composable
 fun WifiEapApp(
     networks: List<WifiNetwork>,
@@ -27,6 +53,7 @@ fun WifiEapApp(
     onDisconnect: () -> Unit,
     onPickCertificate: () -> Unit,
     connectState: ConnectState?,
+    connectError: String?,
     selectedCertUri: Uri?,
     selectedCertName: String?
 ) {
@@ -34,6 +61,7 @@ fun WifiEapApp(
         var step by remember { mutableStateOf(WizardStep.SelectNetwork) }
         var selectedSsid by remember { mutableStateOf("") }
         var isManualInput by remember { mutableStateOf(false) }
+        val credentialsForm = remember { CredentialsFormState() }
 
         BackHandler(enabled = step != WizardStep.SelectNetwork) {
             when (step) {
@@ -52,11 +80,13 @@ fun WifiEapApp(
                     onNetworkSelected = { ssid ->
                         selectedSsid = ssid
                         isManualInput = false
+                        credentialsForm.resetFor(ssid)
                         step = WizardStep.Credentials
                     },
                     onManualInput = {
                         selectedSsid = ""
                         isManualInput = true
+                        credentialsForm.resetFor("")
                         step = WizardStep.Credentials
                     }
                 )
@@ -65,6 +95,7 @@ fun WifiEapApp(
                 CredentialsScreen(
                     ssid = selectedSsid,
                     isManualSsid = isManualInput,
+                    formState = credentialsForm,
                     selectedCertName = selectedCertName,
                     onPickCertificate = onPickCertificate,
                     onConnect = { ssid, username, password, domain, eapMethod, phase2Method, certUri, useSystemCert ->
@@ -80,6 +111,7 @@ fun WifiEapApp(
                 ConnectingScreen(
                     ssid = selectedSsid,
                     state = connectState,
+                    errorMessage = connectError,
                     onRetry = { step = WizardStep.Credentials },
                     onDone = { step = WizardStep.SelectNetwork },
                     onDisconnect = onDisconnect

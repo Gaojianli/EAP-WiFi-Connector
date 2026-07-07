@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
     private val networks = mutableStateListOf<WifiNetwork>()
     private var isScanning by mutableStateOf(false)
     private var connectState by mutableStateOf<ConnectState?>(null)
+    private var connectError by mutableStateOf<String?>(null)
     private var selectedCertUri by mutableStateOf<Uri?>(null)
     private var selectedCertName by mutableStateOf<String?>(null)
 
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
                 onDisconnect = {
                     wifiConnector.disconnectWiFi()
                     connectState = null
+                    connectError = null
                 },
                 onPickCertificate = {
                     certPickerLauncher.launch(arrayOf(
@@ -67,6 +69,7 @@ class MainActivity : ComponentActivity() {
                     ))
                 },
                 connectState = connectState,
+                connectError = connectError,
                 selectedCertUri = selectedCertUri,
                 selectedCertName = selectedCertName
             )
@@ -122,8 +125,9 @@ class MainActivity : ComponentActivity() {
         useSystemCert: Boolean
     ) {
         connectState = ConnectState.Connecting
+        connectError = null
         Thread {
-            val success = wifiConnector.connectToWiFi(
+            val result = wifiConnector.connectToWiFi(
                 ssid = ssid,
                 username = username,
                 password = password,
@@ -134,7 +138,16 @@ class MainActivity : ComponentActivity() {
                 useSystemCert = useSystemCert
             )
             runOnUiThread {
-                connectState = if (success) ConnectState.Success else ConnectState.Failed
+                when (result) {
+                    is ConnectResult.Success -> {
+                        connectState = ConnectState.Success
+                        connectError = null
+                    }
+                    is ConnectResult.Failure -> {
+                        connectState = ConnectState.Failed
+                        connectError = result.reason
+                    }
+                }
             }
         }.start()
     }

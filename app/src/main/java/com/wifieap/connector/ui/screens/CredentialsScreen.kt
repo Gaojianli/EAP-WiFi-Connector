@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,11 +17,13 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
 import com.wifieap.connector.R
+import com.wifieap.connector.ui.CredentialsFormState
 import com.wifieap.connector.ui.theme.TvAccent
 import com.wifieap.connector.ui.theme.TvBackground
 import com.wifieap.connector.ui.theme.TvOnSurfaceDim
@@ -31,20 +34,14 @@ import com.wifieap.connector.ui.theme.TvSurface
 fun CredentialsScreen(
     ssid: String,
     isManualSsid: Boolean,
+    formState: CredentialsFormState,
     selectedCertName: String?,
     selectedCertUri: Uri?,
     onPickCertificate: () -> Unit,
     onConnect: (ssid: String, username: String, password: String, domain: String, eapMethod: Int, phase2Method: Int, certUri: Uri?, useSystemCert: Boolean) -> Unit,
     onBack: () -> Unit
 ) {
-    var editSsid by remember { mutableStateOf(ssid) }
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     var showAdvanced by remember { mutableStateOf(false) }
-    var domain by remember { mutableStateOf("") }
-    var eapIndex by remember { mutableIntStateOf(2) }
-    var phase2Index by remember { mutableIntStateOf(2) }
-    var useSystemCert by remember { mutableStateOf(true) }
 
     val eapMethods = listOf("PEAP", "TLS", "TTLS")
     val phase2Methods = listOf("MSCHAPV2", "GTC", "PAP", "CHAP")
@@ -74,8 +71,8 @@ fun CredentialsScreen(
 
         if (isManualSsid) {
             TvTextField(
-                value = editSsid,
-                onValueChange = { editSsid = it },
+                value = formState.editSsid,
+                onValueChange = { formState.editSsid = it },
                 label = stringResource(R.string.label_ssid),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -85,8 +82,8 @@ fun CredentialsScreen(
         }
 
         TvTextField(
-            value = username,
-            onValueChange = { username = it },
+            value = formState.username,
+            onValueChange = { formState.username = it },
             label = stringResource(R.string.label_username),
             modifier = if (!isManualSsid) {
                 Modifier.fillMaxWidth().focusRequester(focusRequester)
@@ -97,8 +94,8 @@ fun CredentialsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         TvTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = formState.password,
+            onValueChange = { formState.password = it },
             label = stringResource(R.string.label_password),
             isPassword = true,
             modifier = Modifier.fillMaxWidth()
@@ -133,8 +130,8 @@ fun CredentialsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             OptionRow(
                 options = eapMethods,
-                selectedIndex = eapIndex,
-                onSelect = { eapIndex = it }
+                selectedIndex = formState.eapIndex,
+                onSelect = { formState.eapIndex = it }
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -142,14 +139,14 @@ fun CredentialsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             OptionRow(
                 options = phase2Methods,
-                selectedIndex = phase2Index,
-                onSelect = { phase2Index = it }
+                selectedIndex = formState.phase2Index,
+                onSelect = { formState.phase2Index = it }
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             TvTextField(
-                value = domain,
-                onValueChange = { domain = it },
+                value = formState.domain,
+                onValueChange = { formState.domain = it },
                 label = stringResource(R.string.label_domain),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -159,8 +156,8 @@ fun CredentialsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             OptionRow(
                 options = listOf(stringResource(R.string.cert_system), stringResource(R.string.cert_select_file)),
-                selectedIndex = if (useSystemCert) 0 else 1,
-                onSelect = { useSystemCert = it == 0 }
+                selectedIndex = if (formState.useSystemCert) 0 else 1,
+                onSelect = { formState.useSystemCert = it == 0 }
             )
 
             if (!useSystemCert) {
@@ -193,22 +190,22 @@ fun CredentialsScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Surface(
                 onClick = {
-                    val finalSsid = if (isManualSsid) editSsid else ssid
-                    if (finalSsid.isBlank() || username.isBlank() || password.isBlank()) return@Surface
-                    val eapMethod = when (eapIndex) {
+                    val finalSsid = if (isManualSsid) formState.editSsid else ssid
+                    if (finalSsid.isBlank() || formState.username.isBlank() || formState.password.isBlank()) return@Surface
+                    val eapMethod = when (formState.eapIndex) {
                         0 -> WifiEnterpriseConfig.Eap.PEAP
                         1 -> WifiEnterpriseConfig.Eap.TLS
                         2 -> WifiEnterpriseConfig.Eap.TTLS
                         else -> WifiEnterpriseConfig.Eap.PEAP
                     }
-                    val phase2Method = when (phase2Index) {
+                    val phase2Method = when (formState.phase2Index) {
                         0 -> WifiEnterpriseConfig.Phase2.MSCHAPV2
                         1 -> WifiEnterpriseConfig.Phase2.GTC
                         2 -> WifiEnterpriseConfig.Phase2.PAP
                         3 -> WifiEnterpriseConfig.Phase2.MSCHAPV2
                         else -> WifiEnterpriseConfig.Phase2.GTC
                     }
-                    onConnect(finalSsid, username, password, domain, eapMethod, phase2Method, selectedCertUri, useSystemCert)
+                    onConnect(finalSsid, formState.username, formState.password, formState.domain, eapMethod, phase2Method, selectedCertUri, formState.useSystemCert)
                 },
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
                 colors = ClickableSurfaceDefaults.colors(
@@ -330,6 +327,9 @@ private fun TvTextField(
                     ),
                     singleLine = true,
                     visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Ascii
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(fieldFocusRequester)

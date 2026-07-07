@@ -34,6 +34,8 @@
     <string name="connecting">Connecting…</string>
     <string name="connect_success">Connected</string>
     <string name="connect_failed">Connection Failed</string>
+    <string name="error_add_network_failed">Failed to save network configuration. Please check the EAP method, Phase 2 authentication, and certificate settings.</string>
+    <string name="error_exception">Connection error: %s</string>
     <string name="btn_done">Done</string>
     <string name="btn_disconnect">Disconnect</string>
     <string name="btn_retry">Retry</string>
