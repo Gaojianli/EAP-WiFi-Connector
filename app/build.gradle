@@ -26,8 +26,9 @@ android {
 
     defaultConfig {
         applicationId "com.wifieap.connector"
-        minSdk 28
-        targetSdk 37
+        minSdk 23
+        // 28 以上不让用addNetwork() API了
+        targetSdk 28
         versionCode 2
         versionName "2.0"
     }
