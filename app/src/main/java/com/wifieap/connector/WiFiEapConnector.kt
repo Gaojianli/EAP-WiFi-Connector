@@ -160,7 +160,7 @@ class WiFiEapConnector(private val context: Context) {
             )
             Log.e(TAG, "Error connecting to WiFi. $diagnostic", e)
             val exceptionSummary = "${e.javaClass.simpleName}: ${e.message}"
-            ConnectResult.Failure(
+            return ConnectResult.Failure(
                 "${context.getString(R.string.error_exception, exceptionSummary)}\n$diagnostic"
             )
         }
