@@ -160,7 +160,7 @@ fun CredentialsScreen(
                 onSelect = { formState.useSystemCert = it == 0 }
             )
 
-            if (!useSystemCert) {
+            if (!formState.useSystemCert) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     onClick = onPickCertificate,
