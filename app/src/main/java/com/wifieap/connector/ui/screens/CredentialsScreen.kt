@@ -12,7 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -290,6 +292,10 @@ private fun TvTextField(
     isPassword: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val fieldFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    var isFieldFocused by remember { mutableStateOf(false) }
+
     Column(modifier = modifier) {
         Text(
             text = label,
@@ -298,11 +304,14 @@ private fun TvTextField(
             modifier = Modifier.padding(bottom = 4.dp)
         )
         Surface(
-            onClick = {},
+            onClick = {
+                fieldFocusRequester.requestFocus()
+                keyboardController?.show()
+            },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
             colors = ClickableSurfaceDefaults.colors(
-                containerColor = TvSurface,
-                focusedContainerColor = TvSurface
+                containerColor = if (isFieldFocused) TvAccent.copy(alpha = 0.15f) else TvSurface,
+                focusedContainerColor = if (isFieldFocused) TvAccent.copy(alpha = 0.15f) else TvAccent.copy(alpha = 0.3f)
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -321,7 +330,15 @@ private fun TvTextField(
                     ),
                     singleLine = true,
                     visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(fieldFocusRequester)
+                        .onFocusChanged { focusState ->
+                            isFieldFocused = focusState.isFocused
+                            if (focusState.isFocused) {
+                                keyboardController?.show()
+                            }
+                        }
                 )
                 if (value.isEmpty()) {
                     Text(
