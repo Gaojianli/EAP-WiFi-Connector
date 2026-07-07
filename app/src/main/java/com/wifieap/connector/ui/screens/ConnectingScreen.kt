@@ -11,9 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
+import com.wifieap.connector.R
 import com.wifieap.connector.ui.ConnectState
 import com.wifieap.connector.ui.theme.TvAccent
 import com.wifieap.connector.ui.theme.TvBackground
@@ -51,14 +53,14 @@ fun ConnectingScreen(
         when (state) {
             ConnectState.Connecting, null -> {
                 Text(
-                    text = "正在连接...",
+                    text = stringResource(R.string.connecting),
                     fontSize = 24.sp,
                     color = TvOnSurfaceDim
                 )
             }
             ConnectState.Success -> {
                 Text(
-                    text = "连接成功",
+                    text = stringResource(R.string.connect_success),
                     fontSize = 32.sp,
                     color = TvSuccess,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -80,7 +82,7 @@ fun ConnectingScreen(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
-                            Text(text = "完成", fontSize = 22.sp, color = Color.White)
+                            Text(text = stringResource(R.string.btn_done), fontSize = 22.sp, color = Color.White)
                         }
                     }
 
@@ -97,14 +99,14 @@ fun ConnectingScreen(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
-                            Text(text = "断开连接", fontSize = 22.sp, color = Color.White)
+                            Text(text = stringResource(R.string.btn_disconnect), fontSize = 22.sp, color = Color.White)
                         }
                     }
                 }
             }
             ConnectState.Failed -> {
                 Text(
-                    text = "连接失败",
+                    text = stringResource(R.string.connect_failed),
                     fontSize = 32.sp,
                     color = TvError,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -126,7 +128,7 @@ fun ConnectingScreen(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
-                            Text(text = "重试", fontSize = 22.sp, color = Color.White)
+                            Text(text = stringResource(R.string.btn_retry), fontSize = 22.sp, color = Color.White)
                         }
                     }
 
@@ -143,7 +145,7 @@ fun ConnectingScreen(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
-                            Text(text = "返回", fontSize = 22.sp, color = Color.White)
+                            Text(text = stringResource(R.string.btn_back), fontSize = 22.sp, color = Color.White)
                         }
                     }
                 }

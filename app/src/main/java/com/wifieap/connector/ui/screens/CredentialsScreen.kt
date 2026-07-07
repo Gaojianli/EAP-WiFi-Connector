@@ -13,10 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
+import com.wifieap.connector.R
 import com.wifieap.connector.ui.theme.TvAccent
 import com.wifieap.connector.ui.theme.TvBackground
 import com.wifieap.connector.ui.theme.TvOnSurfaceDim
@@ -38,14 +40,21 @@ fun CredentialsScreen(
     var password by remember { mutableStateOf("") }
     var showAdvanced by remember { mutableStateOf(false) }
     var domain by remember { mutableStateOf("") }
-    var eapIndex by remember { mutableIntStateOf(2) } // TTLS default
-    var phase2Index by remember { mutableIntStateOf(2) } // PAP default
+    var eapIndex by remember { mutableIntStateOf(2) }
+    var phase2Index by remember { mutableIntStateOf(2) }
     var useSystemCert by remember { mutableStateOf(true) }
 
     val eapMethods = listOf("PEAP", "TLS", "TTLS")
     val phase2Methods = listOf("MSCHAPV2", "GTC", "PAP", "CHAP")
 
     val focusRequester = remember { FocusRequester() }
+
+    val titleText = if (isManualSsid) {
+        stringResource(R.string.title_manual_input)
+    } else {
+        stringResource(R.string.title_connect_to, ssid)
+    }
+    val advancedLabel = stringResource(R.string.advanced_settings)
 
     Column(
         modifier = Modifier
@@ -55,7 +64,7 @@ fun CredentialsScreen(
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            text = if (isManualSsid) "手动输入网络" else "连接到 $ssid",
+            text = titleText,
             fontSize = 28.sp,
             color = Color.White,
             modifier = Modifier.padding(bottom = 24.dp)
@@ -65,7 +74,7 @@ fun CredentialsScreen(
             TvTextField(
                 value = editSsid,
                 onValueChange = { editSsid = it },
-                label = "网络名称 (SSID)",
+                label = stringResource(R.string.label_ssid),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
@@ -76,7 +85,7 @@ fun CredentialsScreen(
         TvTextField(
             value = username,
             onValueChange = { username = it },
-            label = "用户名",
+            label = stringResource(R.string.label_username),
             modifier = if (!isManualSsid) {
                 Modifier.fillMaxWidth().focusRequester(focusRequester)
             } else {
@@ -88,13 +97,12 @@ fun CredentialsScreen(
         TvTextField(
             value = password,
             onValueChange = { password = it },
-            label = "密码",
+            label = stringResource(R.string.label_password),
             isPassword = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Advanced settings toggle
         Surface(
             onClick = { showAdvanced = !showAdvanced },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
@@ -109,7 +117,7 @@ fun CredentialsScreen(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
             ) {
                 Text(
-                    text = if (showAdvanced) "▼ 高级设置" else "▶ 高级设置",
+                    text = if (showAdvanced) "▼ $advancedLabel" else "▶ $advancedLabel",
                     fontSize = 18.sp,
                     color = Color.White
                 )
@@ -119,8 +127,7 @@ fun CredentialsScreen(
         if (showAdvanced) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // EAP Method
-            Text(text = "EAP 方法", fontSize = 16.sp, color = TvOnSurfaceDim)
+            Text(text = stringResource(R.string.label_eap_method), fontSize = 16.sp, color = TvOnSurfaceDim)
             Spacer(modifier = Modifier.height(8.dp))
             OptionRow(
                 options = eapMethods,
@@ -129,8 +136,7 @@ fun CredentialsScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Phase2
-            Text(text = "Phase 2 认证", fontSize = 16.sp, color = TvOnSurfaceDim)
+            Text(text = stringResource(R.string.label_phase2), fontSize = 16.sp, color = TvOnSurfaceDim)
             Spacer(modifier = Modifier.height(8.dp))
             OptionRow(
                 options = phase2Methods,
@@ -139,20 +145,18 @@ fun CredentialsScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Domain
             TvTextField(
                 value = domain,
                 onValueChange = { domain = it },
-                label = "域名 (Subject Match)",
+                label = stringResource(R.string.label_domain),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Certificate
-            Text(text = "CA 证书", fontSize = 16.sp, color = TvOnSurfaceDim)
+            Text(text = stringResource(R.string.label_ca_cert), fontSize = 16.sp, color = TvOnSurfaceDim)
             Spacer(modifier = Modifier.height(8.dp))
             OptionRow(
-                options = listOf("系统验证", "选择文件"),
+                options = listOf(stringResource(R.string.cert_system), stringResource(R.string.cert_select_file)),
                 selectedIndex = if (useSystemCert) 0 else 1,
                 onSelect = { useSystemCert = it == 0 }
             )
@@ -173,7 +177,7 @@ fun CredentialsScreen(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
                     ) {
                         Text(
-                            text = selectedCertName ?: "点击选择证书文件",
+                            text = selectedCertName ?: stringResource(R.string.cert_pick_prompt),
                             fontSize = 16.sp,
                             color = Color.White
                         )
@@ -184,7 +188,6 @@ fun CredentialsScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Action buttons
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Surface(
                 onClick = {
@@ -216,7 +219,7 @@ fun CredentialsScreen(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
                 ) {
-                    Text(text = "连接", fontSize = 22.sp, color = Color.White)
+                    Text(text = stringResource(R.string.btn_connect), fontSize = 22.sp, color = Color.White)
                 }
             }
 
@@ -233,7 +236,7 @@ fun CredentialsScreen(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
                 ) {
-                    Text(text = "返回", fontSize = 22.sp, color = Color.White)
+                    Text(text = stringResource(R.string.btn_back), fontSize = 22.sp, color = Color.White)
                 }
             }
         }

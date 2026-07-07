@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WiFi EAP Connector"
+rootProject.name = "EAP-WiFi-Connector"
 include ':app'

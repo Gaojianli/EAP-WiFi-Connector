@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EAP-WiFi 连接助手</string>
+
+    <!-- SelectNetworkScreen -->
+    <string name="title_select_network">选择企业 Wi-Fi 网络</string>
+    <string name="scanning">正在扫描…</string>
+    <string name="no_networks_found">未找到企业 Wi-Fi 网络</string>
+    <string name="refresh">刷新</string>
+    <string name="manual_input">手动输入 / 隐藏网络</string>
+    <string name="signal_excellent">信号: 极强</string>
+    <string name="signal_good">信号: 强</string>
+    <string name="signal_fair">信号: 中</string>
+    <string name="signal_weak">信号: 弱</string>
+
+    <!-- CredentialsScreen -->
+    <string name="title_manual_input">手动输入网络</string>
+    <string name="title_connect_to">连接到 %s</string>
+    <string name="label_ssid">网络名称 (SSID)</string>
+    <string name="label_username">用户名</string>
+    <string name="label_password">密码</string>
+    <string name="label_domain">域名 (Subject Match)</string>
+    <string name="advanced_settings">高级设置</string>
+    <string name="label_eap_method">EAP 方法</string>
+    <string name="label_phase2">Phase 2 认证</string>
+    <string name="label_ca_cert">CA 证书</string>
+    <string name="cert_system">系统验证</string>
+    <string name="cert_select_file">选择文件</string>
+    <string name="cert_pick_prompt">点击选择证书文件</string>
+    <string name="btn_connect">连接</string>
+    <string name="btn_back">返回</string>
+
+    <!-- ConnectingScreen -->
+    <string name="connecting">正在连接…</string>
+    <string name="connect_success">连接成功</string>
+    <string name="connect_failed">连接失败</string>
+    <string name="btn_done">完成</string>
+    <string name="btn_disconnect">断开连接</string>
+    <string name="btn_retry">重试</string>
+</resources>

@@ -1,4 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WiFi EAP 连接器</string>
+    <string name="app_name">EAP-WiFi Connector</string>
+
+    <!-- SelectNetworkScreen -->
+    <string name="title_select_network">Select Enterprise Wi-Fi</string>
+    <string name="scanning">Scanning…</string>
+    <string name="no_networks_found">No enterprise Wi-Fi networks found</string>
+    <string name="refresh">Refresh</string>
+    <string name="manual_input">Manual Input / Hidden Network</string>
+    <string name="signal_excellent">Signal: Excellent</string>
+    <string name="signal_good">Signal: Good</string>
+    <string name="signal_fair">Signal: Fair</string>
+    <string name="signal_weak">Signal: Weak</string>
+
+    <!-- CredentialsScreen -->
+    <string name="title_manual_input">Manual Input</string>
+    <string name="title_connect_to">Connect to %s</string>
+    <string name="label_ssid">Network Name (SSID)</string>
+    <string name="label_username">Username</string>
+    <string name="label_password">Password</string>
+    <string name="label_domain">Domain (Subject Match)</string>
+    <string name="advanced_settings">Advanced Settings</string>
+    <string name="label_eap_method">EAP Method</string>
+    <string name="label_phase2">Phase 2 Auth</string>
+    <string name="label_ca_cert">CA Certificate</string>
+    <string name="cert_system">System</string>
+    <string name="cert_select_file">Select File</string>
+    <string name="cert_pick_prompt">Tap to select certificate file</string>
+    <string name="btn_connect">Connect</string>
+    <string name="btn_back">Back</string>
+
+    <!-- ConnectingScreen -->
+    <string name="connecting">Connecting…</string>
+    <string name="connect_success">Connected</string>
+    <string name="connect_failed">Connection Failed</string>
+    <string name="btn_done">Done</string>
+    <string name="btn_disconnect">Disconnect</string>
+    <string name="btn_retry">Retry</string>
 </resources>

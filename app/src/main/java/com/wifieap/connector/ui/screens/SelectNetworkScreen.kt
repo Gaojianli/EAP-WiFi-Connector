@@ -13,15 +13,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
+import com.wifieap.connector.R
 import com.wifieap.connector.WifiNetwork
 import com.wifieap.connector.ui.theme.TvAccent
 import com.wifieap.connector.ui.theme.TvBackground
 import com.wifieap.connector.ui.theme.TvOnSurfaceDim
 import com.wifieap.connector.ui.theme.TvSurface
+import com.wifieap.connector.ui.theme.WifiEapTheme
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -41,7 +46,7 @@ fun SelectNetworkScreen(
             .padding(48.dp)
     ) {
         Text(
-            text = "选择企业 Wi-Fi 网络",
+            text = stringResource(R.string.title_select_network),
             fontSize = 32.sp,
             color = Color.White,
             modifier = Modifier.padding(bottom = 24.dp)
@@ -49,7 +54,7 @@ fun SelectNetworkScreen(
 
         if (isScanning) {
             Text(
-                text = "正在扫描...",
+                text = stringResource(R.string.scanning),
                 fontSize = 18.sp,
                 color = TvOnSurfaceDim,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -58,7 +63,7 @@ fun SelectNetworkScreen(
 
         if (networks.isEmpty() && !isScanning) {
             Text(
-                text = "未找到企业 Wi-Fi 网络",
+                text = stringResource(R.string.no_networks_found),
                 fontSize = 20.sp,
                 color = TvOnSurfaceDim,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -102,7 +107,7 @@ fun SelectNetworkScreen(
                     modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp)
                 ) {
                     Text(
-                        text = "刷新",
+                        text = stringResource(R.string.refresh),
                         fontSize = 20.sp,
                         color = Color.White
                     )
@@ -123,7 +128,7 @@ fun SelectNetworkScreen(
                     modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp)
                 ) {
                     Text(
-                        text = "手动输入 / 隐藏网络",
+                        text = stringResource(R.string.manual_input),
                         fontSize = 20.sp,
                         color = Color.White
                     )
@@ -146,6 +151,14 @@ private fun NetworkItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val signalIcon = when {
+        network.level >= -50 -> R.drawable.ic_signal_4
+        network.level >= -60 -> R.drawable.ic_signal_3
+        network.level >= -70 -> R.drawable.ic_signal_2
+        else -> R.drawable.ic_signal_1
+    }
+    val encryptionLabel = parseEncryption(network.capabilities)
+
     Surface(
         onClick = onClick,
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
@@ -164,28 +177,58 @@ private fun NetworkItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = network.ssid,
-                fontSize = 22.sp,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = getSignalLabel(network.level),
-                fontSize = 18.sp,
-                color = TvOnSurfaceDim
+            ) {
+                Text(
+                    text = network.ssid,
+                    fontSize = 22.sp,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = encryptionLabel,
+                    fontSize = 14.sp,
+                    color = TvOnSurfaceDim
+                )
+            }
+            Icon(
+                painter = painterResource(signalIcon),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(28.dp)
             )
         }
     }
 }
 
-private fun getSignalLabel(level: Int): String {
+private fun parseEncryption(capabilities: String): String {
     return when {
-        level >= -50 -> "信号: 极强"
-        level >= -60 -> "信号: 强"
-        level >= -70 -> "信号: 中"
-        else -> "信号: 弱"
+        capabilities.contains("WPA3") && capabilities.contains("EAP") -> "WPA3-EAP"
+        capabilities.contains("WPA2") && capabilities.contains("EAP") -> "WPA2-EAP"
+        capabilities.contains("WPA") && capabilities.contains("EAP") -> "WPA-EAP"
+        capabilities.contains("EAP") -> "802.1X"
+        else -> "EAP"
+    }
+}
+
+@Preview(device = "id:tv_1080p", showBackground = true)
+@Composable
+private fun SelectNetworkScreenPreview() {
+    WifiEapTheme {
+        SelectNetworkScreen(
+            networks = listOf(
+                WifiNetwork(ssid = "Corp-WiFi", level = -45, capabilities = "[WPA2-EAP]"),
+                WifiNetwork(ssid = "Office-5G", level = -62, capabilities = "[WPA3-EAP]"),
+                WifiNetwork(ssid = "Guest-EAP", level = -78, capabilities = "[WPA2-EAP]")
+            ),
+            isScanning = false,
+            onRefresh = {},
+            onNetworkSelected = {},
+            onManualInput = {}
+        )
     }
 }
