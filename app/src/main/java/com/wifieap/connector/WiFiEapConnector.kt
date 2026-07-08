@@ -9,16 +9,20 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.net.wifi.ScanResult
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiEnterpriseConfig
 import android.net.wifi.WifiManager
+import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import java.io.InputStream
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 data class WifiNetwork(
     val ssid: String,
@@ -33,27 +37,45 @@ sealed class ConnectResult {
 
 class WiFiEapConnector(private val context: Context) {
     private val wifiManager =
-        context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     private var scanReceiver: BroadcastReceiver? = null
 
     fun ensureWifiEnabled(): Boolean {
-        if (!wifiManager.isWifiEnabled) {
+        if (!wifiManager.isWifiEnabled && Build.VERSION.SDK_INT < 29) {
             wifiManager.isWifiEnabled = true
             Thread.sleep(2000)
         }
         return wifiManager.isWifiEnabled
     }
 
-    fun startScan(onResults: (List<WifiNetwork>) -> Unit) {
+    fun startScan(onResults: (List<WifiNetwork>) -> Unit): Boolean {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            return false
+        }
+
         scanReceiver?.let {
             try { context.unregisterReceiver(it) } catch (_: Exception) {}
         }
 
         scanReceiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
-                val results = getEnterpriseNetworks()
-                onResults(results)
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                    onResults(emptyList())
+                    return
+                }
+                val results = wifiManager.scanResults ?: emptyList()
+                onResults(results
+                        .asSequence()
+                        .filter { it.capabilities.contains("EAP") || it.capabilities.contains("802.1x", ignoreCase = true) }
+                        .filter { it.SSID.isNotBlank() }
+                        .groupBy { it.SSID }
+                        .map { (_, scans) -> scans.maxByOrNull { it.level }!! }
+                        .sortedByDescending { it.level }
+                        .map { WifiNetwork(ssid = it.SSID, level = it.level, capabilities = it.capabilities) }
+                        .toList())
             }
         }
 
@@ -62,6 +84,7 @@ class WiFiEapConnector(private val context: Context) {
             IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
         )
         wifiManager.startScan()
+        return true
     }
 
     fun stopScan() {
@@ -69,17 +92,6 @@ class WiFiEapConnector(private val context: Context) {
             try { context.unregisterReceiver(it) } catch (_: Exception) {}
         }
         scanReceiver = null
-    }
-
-    fun getEnterpriseNetworks(): List<WifiNetwork> {
-        val results = wifiManager.scanResults ?: return emptyList()
-        return results
-            .filter { it.capabilities.contains("EAP") || it.capabilities.contains("802.1x", ignoreCase = true) }
-            .filter { it.SSID.isNotBlank() }
-            .groupBy { it.SSID }
-            .map { (ssid, scans) -> scans.maxByOrNull { it.level }!! }
-            .sortedByDescending { it.level }
-            .map { WifiNetwork(ssid = it.SSID, level = it.level, capabilities = it.capabilities) }
     }
 
     fun connectToWiFi(
@@ -92,23 +104,99 @@ class WiFiEapConnector(private val context: Context) {
         certificateUri: Uri? = null,
         useSystemCert: Boolean = true
     ): ConnectResult {
-        try {
-            Log.i(TAG, "Connecting to SSID: $ssid with user: $username")
-            ensureWifiEnabled()
+        Log.i(TAG, "Connecting to SSID: $ssid, SDK: ${Build.VERSION.SDK_INT}")
+        ensureWifiEnabled()
 
+        return if (Build.VERSION.SDK_INT >= 29) {
+            connectViaSuggestion(ssid, username, password, domain, eapMethod, phase2Method, certificateUri, useSystemCert)
+        } else {
+            connectViaLegacy(ssid, username, password, domain, eapMethod, phase2Method, certificateUri, useSystemCert)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun connectViaSuggestion(
+        ssid: String,
+        username: String,
+        password: String,
+        domain: String,
+        eapMethod: Int,
+        phase2Method: Int,
+        certificateUri: Uri?,
+        useSystemCert: Boolean
+    ): ConnectResult {
+        if (useSystemCert && domain.isEmpty()) {
+            return ConnectResult.Failure("Android 11+ requires Domain (Subject Match) when using system certificates")
+        }
+
+        try {
+            val enterpriseConfig = WifiEnterpriseConfig().apply {
+                this.eapMethod = eapMethod
+                this.phase2Method = phase2Method
+                identity = username
+                this.password = password
+                domainSuffixMatch = domain
+                if (!useSystemCert && certificateUri != null) {
+                    val caCert = loadCertificateFromUri(certificateUri)
+                    if (caCert != null) {
+                        caCertificate = caCert
+                    }
+                } else if (useSystemCert) {
+                    try {
+                        val method = WifiEnterpriseConfig::class.java.getMethod("setCaPath", String::class.java)
+                        method.invoke(this, "/system/etc/security/cacerts")
+                    } catch (_: Exception) {}
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        enableTrustOnFirstUse(true)
+                    }
+                }
+            }
+
+            val suggestion = WifiNetworkSuggestion.Builder()
+                .setSsid(ssid)
+                .setWpa2EnterpriseConfig(enterpriseConfig)
+                .setIsAppInteractionRequired(true)
+                .build()
+
+            if (Build.VERSION.SDK_INT >= 30) {
+                wifiManager.removeNetworkSuggestions(wifiManager.networkSuggestions)
+            }
+
+            val status = wifiManager.addNetworkSuggestions(listOf(suggestion))
+            return if (status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+                Log.i(TAG, "Network suggestion added successfully")
+                ConnectResult.Success
+            } else {
+                val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+                ConnectResult.Failure("addNetworkSuggestions failed: status=$status\n$diagnostic")
+            }
+        } catch (e: Exception) {
+            val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+            return ConnectResult.Failure("${e.javaClass.simpleName}: ${e.message}\n$diagnostic")
+        }
+    }
+
+    private fun connectViaLegacy(
+        ssid: String,
+        username: String,
+        password: String,
+        domain: String,
+        eapMethod: Int,
+        phase2Method: Int,
+        certificateUri: Uri?,
+        useSystemCert: Boolean
+    ): ConnectResult {
+        try {
             val wifiConfig = WifiConfiguration().apply {
                 SSID = "\"$ssid\""
-
-                val eapConfig = WifiEnterpriseConfig().apply {
+                enterpriseConfig = WifiEnterpriseConfig().apply {
                     this.eapMethod = eapMethod
                     this.phase2Method = phase2Method
                     identity = username
                     this.password = password
-
                     if (domain.isNotEmpty()) {
                         subjectMatch = domain
                     }
-
                     if (!useSystemCert && certificateUri != null) {
                         val caCert = loadCertificateFromUri(certificateUri)
                         if (caCert != null) {
@@ -116,53 +204,33 @@ class WiFiEapConnector(private val context: Context) {
                         }
                     }
                 }
-
-                enterpriseConfig = eapConfig
                 allowedKeyManagement.clear()
                 allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_EAP)
                 allowedKeyManagement.set(WifiConfiguration.KeyMgmt.IEEE8021X)
             }
 
-            wifiManager.configuredNetworks?.forEach { config ->
-                if (config.SSID == "\"$ssid\"") {
-                    wifiManager.removeNetwork(config.networkId)
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+                wifiManager.configuredNetworks?.forEach { config ->
+                    if (config.SSID == "\"$ssid\"") {
+                        wifiManager.removeNetwork(config.networkId)
+                    }
                 }
             }
 
             val networkId = wifiManager.addNetwork(wifiConfig)
-
             return if (networkId != -1) {
-                Log.i(TAG, "WiFi configuration added with ID: $networkId")
                 wifiManager.saveConfiguration()
                 wifiManager.enableNetwork(networkId, true)
                 wifiManager.reconnect()
                 ConnectResult.Success
             } else {
-                val diagnostic = buildDiagnosticInfo(
-                    networkId = networkId,
-                    eapMethod = eapMethod,
-                    phase2Method = phase2Method,
-                    useSystemCert = useSystemCert,
-                    hasCert = certificateUri != null
-                )
-                Log.e(TAG, "Failed to add WiFi configuration. $diagnostic")
-                ConnectResult.Failure(
-                    "${context.getString(R.string.error_add_network_failed)}\n$diagnostic"
-                )
+                val diagnostic = buildDiagnosticInfo(networkId, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+                ConnectResult.Failure("addNetwork failed\n$diagnostic")
             }
         } catch (e: Exception) {
-            val diagnostic = buildDiagnosticInfo(
-                networkId = -1,
-                eapMethod = eapMethod,
-                phase2Method = phase2Method,
-                useSystemCert = useSystemCert,
-                hasCert = certificateUri != null
-            )
-            Log.e(TAG, "Error connecting to WiFi. $diagnostic", e)
-            val exceptionSummary = "${e.javaClass.simpleName}: ${e.message}"
-            return ConnectResult.Failure(
-                "${context.getString(R.string.error_exception, exceptionSummary)}\n$diagnostic"
-            )
+            val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+            return ConnectResult.Failure("${e.javaClass.simpleName}: ${e.message}\n$diagnostic")
         }
     }
 
@@ -173,35 +241,37 @@ class WiFiEapConnector(private val context: Context) {
         useSystemCert: Boolean,
         hasCert: Boolean
     ): String {
-        val hasLocationPermission = ContextCompat.checkSelfPermission(
+        val hasLocation = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-        val hasChangeWifiPermission = ContextCompat.checkSelfPermission(
+        val hasWifi = ContextCompat.checkSelfPermission(
             context, Manifest.permission.CHANGE_WIFI_STATE
         ) == PackageManager.PERMISSION_GRANTED
-        return "addNetwork=$networkId, sdk=${Build.VERSION.SDK_INT}, device=${Build.MANUFACTURER} ${Build.MODEL}, " +
-            "wifiEnabled=${wifiManager.isWifiEnabled}, eapMethod=${eapMethodName(eapMethod)}, " +
-            "phase2=${phase2MethodName(phase2Method)}, useSystemCert=$useSystemCert, hasCert=$hasCert, " +
-            "locationPermission=$hasLocationPermission, changeWifiPermission=$hasChangeWifiPermission"
+        return "addNetwork=$networkId, sdk=${Build.VERSION.SDK_INT}, " +
+            "device=${Build.MANUFACTURER} ${Build.MODEL}, " +
+            "wifiEnabled=${wifiManager.isWifiEnabled}, " +
+            "eap=${eapMethodName(eapMethod)}, phase2=${phase2MethodName(phase2Method)}, " +
+            "useSystemCert=$useSystemCert, hasCert=$hasCert, " +
+            "location=$hasLocation, wifi=$hasWifi"
     }
 
-    private fun eapMethodName(eapMethod: Int): String = when (eapMethod) {
+    private fun eapMethodName(method: Int): String = when (method) {
         WifiEnterpriseConfig.Eap.PEAP -> "PEAP"
         WifiEnterpriseConfig.Eap.TLS -> "TLS"
         WifiEnterpriseConfig.Eap.TTLS -> "TTLS"
         WifiEnterpriseConfig.Eap.PWD -> "PWD"
         WifiEnterpriseConfig.Eap.SIM -> "SIM"
         WifiEnterpriseConfig.Eap.AKA -> "AKA"
-        else -> "UNKNOWN($eapMethod)"
+        else -> "UNKNOWN($method)"
     }
 
-    private fun phase2MethodName(phase2Method: Int): String = when (phase2Method) {
+    private fun phase2MethodName(method: Int): String = when (method) {
         WifiEnterpriseConfig.Phase2.NONE -> "NONE"
         WifiEnterpriseConfig.Phase2.PAP -> "PAP"
         WifiEnterpriseConfig.Phase2.MSCHAP -> "MSCHAP"
         WifiEnterpriseConfig.Phase2.MSCHAPV2 -> "MSCHAPV2"
         WifiEnterpriseConfig.Phase2.GTC -> "GTC"
-        else -> "UNKNOWN($phase2Method)"
+        else -> "UNKNOWN($method)"
     }
 
     private fun loadCertificateFromUri(uri: Uri): X509Certificate? {
@@ -213,16 +283,22 @@ class WiFiEapConnector(private val context: Context) {
             inputStream.close()
             cert as X509Certificate
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading certificate from URI: ${e.message}")
+            Log.e(TAG, "Error loading certificate: ${e.message}")
             null
         }
     }
 
     fun disconnectWiFi() {
         try {
-            wifiManager.disconnect()
+            if (Build.VERSION.SDK_INT >= 30) {
+                wifiManager.removeNetworkSuggestions(wifiManager.networkSuggestions)
+            } else if (Build.VERSION.SDK_INT >= 29) {
+                wifiManager.removeNetworkSuggestions(emptyList())
+            } else {
+                wifiManager.disconnect()
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error disconnecting WiFi: " + e.message)
+            Log.e(TAG, "Error disconnecting: ${e.message}")
         }
     }
 

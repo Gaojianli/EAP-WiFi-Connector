@@ -105,12 +105,17 @@ class MainActivity : ComponentActivity() {
     private fun startWifiScan() {
         isScanning = true
         wifiConnector.ensureWifiEnabled()
-        wifiConnector.startScan { results ->
+        val started = wifiConnector.startScan { results ->
             runOnUiThread {
                 networks.clear()
                 networks.addAll(results)
                 isScanning = false
             }
+        }
+        if (!started) {
+            isScanning = false
+            android.widget.Toast.makeText(this, getString(R.string.permission_required), android.widget.Toast.LENGTH_SHORT).show()
+            requestPermissionsAndScan()
         }
     }
 

@@ -39,4 +39,5 @@
     <string name="btn_done">Done</string>
     <string name="btn_disconnect">Disconnect</string>
     <string name="btn_retry">Retry</string>
+    <string name="permission_required">Location permission is required to scan Wi-Fi networks</string>
 </resources>

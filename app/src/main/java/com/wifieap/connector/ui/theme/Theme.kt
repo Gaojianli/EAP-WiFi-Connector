@@ -8,7 +8,6 @@ import androidx.tv.material3.darkColorScheme
 
 val TvBackground = Color(0xFF1A1A2E)
 val TvSurface = Color(0xFF16213E)
-val TvPrimary = Color(0xFF0F3460)
 val TvAccent = Color(0xFF53A8B6)
 val TvOnSurface = Color(0xFFFFFFFF)
 val TvOnSurfaceDim = Color(0xFFAAAAAA)

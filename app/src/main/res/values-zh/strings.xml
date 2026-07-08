@@ -39,4 +39,5 @@
     <string name="btn_done">完成</string>
     <string name="btn_disconnect">断开连接</string>
     <string name="btn_retry">重试</string>
+    <string name="permission_required">需要位置权限才能扫描 Wi-Fi 网络</string>
 </resources>
