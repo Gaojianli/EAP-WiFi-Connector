@@ -48,7 +48,6 @@ fun WifiEapApp(
     isScanning: Boolean,
     onRefresh: () -> Unit,
     onConnect: (ssid: String, username: String, password: String, domain: String, eapMethod: Int, phase2Method: Int, certUri: Uri?, useSystemCert: Boolean) -> Unit,
-    onDisconnect: () -> Unit,
     onPickCertificate: () -> Unit,
     connectState: ConnectState?,
     connectError: String?,
@@ -113,8 +112,7 @@ fun WifiEapApp(
                     errorMessage = connectError,
                     isSuggestionMode = isSuggestionMode,
                     onRetry = { step = WizardStep.Credentials },
-                    onDone = { step = WizardStep.SelectNetwork },
-                    onDisconnect = onDisconnect
+                    onDone = { step = WizardStep.SelectNetwork }
                 )
             }
         }

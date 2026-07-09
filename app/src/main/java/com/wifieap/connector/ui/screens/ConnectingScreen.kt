@@ -36,8 +36,7 @@ fun ConnectingScreen(
     errorMessage: String? = null,
     isSuggestionMode: Boolean = false,
     onRetry: () -> Unit,
-    onDone: () -> Unit,
-    onDisconnect: () -> Unit
+    onDone: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
 
@@ -82,41 +81,22 @@ fun ConnectingScreen(
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Surface(
-                        onClick = onDone,
-                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                        colors = ClickableSurfaceDefaults.colors(
-                            containerColor = TvAccent,
-                            focusedContainerColor = TvAccent.copy(alpha = 0.8f)
-                        ),
-                        modifier = Modifier
-                            .height(56.dp)
-                            .focusRequester(focusRequester)
+                Surface(
+                    onClick = onDone,
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = TvAccent,
+                        focusedContainerColor = TvAccent.copy(alpha = 0.8f)
+                    ),
+                    modifier = Modifier
+                        .height(56.dp)
+                        .focusRequester(focusRequester)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
-                        ) {
-                            Text(text = stringResource(R.string.btn_done), fontSize = 22.sp, color = Color.White)
-                        }
-                    }
-
-                    Surface(
-                        onClick = onDisconnect,
-                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                        colors = ClickableSurfaceDefaults.colors(
-                            containerColor = TvSurface,
-                            focusedContainerColor = TvError.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.height(56.dp)
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
-                        ) {
-                            Text(text = stringResource(R.string.btn_disconnect), fontSize = 22.sp, color = Color.White)
-                        }
+                        Text(text = stringResource(R.string.btn_done), fontSize = 22.sp, color = Color.White)
                     }
                 }
             }

@@ -55,11 +55,6 @@ class MainActivity : ComponentActivity() {
                 onConnect = { ssid, username, password, domain, eapMethod, phase2Method, certUri, useSystemCert ->
                     doConnect(ssid, username, password, domain, eapMethod, phase2Method, certUri, useSystemCert)
                 },
-                onDisconnect = {
-                    wifiConnector.disconnectWiFi()
-                    connectState = null
-                    connectError = null
-                },
                 onPickCertificate = {
                     certPickerLauncher.launch(arrayOf(
                         "application/x-pem-file",

@@ -39,6 +39,7 @@ fun SelectNetworkScreen(
     onManualInput: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
+    val manualFocusRequester = remember { FocusRequester() }
 
     Column(
         modifier = Modifier
@@ -140,7 +141,7 @@ fun SelectNetworkScreen(
                     containerColor = TvSurface,
                     focusedContainerColor = TvAccent
                 ),
-                modifier = Modifier.height(56.dp)
+                modifier = Modifier.height(56.dp).focusRequester(manualFocusRequester)
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -156,9 +157,12 @@ fun SelectNetworkScreen(
         }
     }
 
-    LaunchedEffect(networks) {
-        if (networks.isNotEmpty()) {
-            try { focusRequester.requestFocus() } catch (_: Exception) {}
+    LaunchedEffect(networks, isScanning) {
+        if (!isScanning) {
+            try {
+                if (networks.isNotEmpty()) focusRequester.requestFocus()
+                else manualFocusRequester.requestFocus()
+            } catch (_: Exception) {}
         }
     }
 }
