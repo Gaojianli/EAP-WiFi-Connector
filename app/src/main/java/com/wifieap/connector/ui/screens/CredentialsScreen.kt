@@ -6,17 +6,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -42,11 +46,16 @@ fun CredentialsScreen(
     onBack: () -> Unit
 ) {
     var showAdvanced by remember { mutableStateOf(false) }
+    var ssidError by remember { mutableStateOf(false) }
+    var usernameError by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf(false) }
 
     val eapMethods = listOf("PEAP", "TLS", "TTLS")
     val phase2Methods = listOf("MSCHAPV2", "GTC", "PAP", "CHAP")
 
-    val focusRequester = remember { FocusRequester() }
+    val ssidFocusRequester = remember { FocusRequester() }
+    val usernameFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
 
     val titleText = if (isManualSsid) {
         stringResource(R.string.title_manual_input)
@@ -72,33 +81,39 @@ fun CredentialsScreen(
         if (isManualSsid) {
             TvTextField(
                 value = formState.editSsid,
-                onValueChange = { formState.editSsid = it },
+                onValueChange = { formState.editSsid = it; ssidError = false },
                 label = stringResource(R.string.label_ssid),
+                imeAction = ImeAction.Next,
+                isError = ssidError,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
+                    .widthIn(max = 600.dp)
+                    .focusRequester(ssidFocusRequester)
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
 
         TvTextField(
             value = formState.username,
-            onValueChange = { formState.username = it },
+            onValueChange = { formState.username = it; usernameError = false },
             label = stringResource(R.string.label_username),
-            modifier = if (!isManualSsid) {
-                Modifier.fillMaxWidth().focusRequester(focusRequester)
-            } else {
-                Modifier.fillMaxWidth()
-            }
+            imeAction = ImeAction.Next,
+            isError = usernameError,
+            modifier = Modifier
+                .widthIn(max = 600.dp)
+                .focusRequester(usernameFocusRequester)
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         TvTextField(
             value = formState.password,
-            onValueChange = { formState.password = it },
+            onValueChange = { formState.password = it; passwordError = false },
             label = stringResource(R.string.label_password),
             isPassword = true,
-            modifier = Modifier.fillMaxWidth()
+            imeAction = ImeAction.Done,
+            isError = passwordError,
+            modifier = Modifier
+                .widthIn(max = 600.dp)
+                .focusRequester(passwordFocusRequester)
         )
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -109,7 +124,7 @@ fun CredentialsScreen(
                 containerColor = TvSurface,
                 focusedContainerColor = TvAccent.copy(alpha = 0.3f)
             ),
-            modifier = Modifier.fillMaxWidth().height(48.dp)
+            modifier = Modifier.widthIn(max = 600.dp).height(48.dp)
         ) {
             Box(
                 contentAlignment = Alignment.CenterStart,
@@ -148,7 +163,7 @@ fun CredentialsScreen(
                 value = formState.domain,
                 onValueChange = { formState.domain = it },
                 label = stringResource(R.string.label_domain),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.widthIn(max = 600.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -169,7 +184,7 @@ fun CredentialsScreen(
                         containerColor = TvSurface,
                         focusedContainerColor = TvAccent.copy(alpha = 0.3f)
                     ),
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                    modifier = Modifier.widthIn(max = 600.dp).height(48.dp)
                 ) {
                     Box(
                         contentAlignment = Alignment.CenterStart,
@@ -191,7 +206,21 @@ fun CredentialsScreen(
             Surface(
                 onClick = {
                     val finalSsid = if (isManualSsid) formState.editSsid else ssid
-                    if (finalSsid.isBlank() || formState.username.isBlank() || formState.password.isBlank()) return@Surface
+                    if (isManualSsid && finalSsid.isBlank()) {
+                        ssidError = true
+                        ssidFocusRequester.requestFocus()
+                        return@Surface
+                    }
+                    if (formState.username.isBlank()) {
+                        usernameError = true
+                        usernameFocusRequester.requestFocus()
+                        return@Surface
+                    }
+                    if (formState.password.isBlank()) {
+                        passwordError = true
+                        passwordFocusRequester.requestFocus()
+                        return@Surface
+                    }
                     val eapMethod = when (formState.eapIndex) {
                         0 -> WifiEnterpriseConfig.Eap.PEAP
                         1 -> WifiEnterpriseConfig.Eap.TLS
@@ -216,7 +245,7 @@ fun CredentialsScreen(
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
+                    modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
                 ) {
                     Text(text = stringResource(R.string.btn_connect), fontSize = 22.sp, color = Color.White)
                 }
@@ -233,7 +262,7 @@ fun CredentialsScreen(
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
+                    modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
                 ) {
                     Text(text = stringResource(R.string.btn_back), fontSize = 22.sp, color = Color.White)
                 }
@@ -242,7 +271,10 @@ fun CredentialsScreen(
     }
 
     LaunchedEffect(Unit) {
-        try { focusRequester.requestFocus() } catch (_: Exception) {}
+        try {
+            if (isManualSsid) ssidFocusRequester.requestFocus()
+            else usernameFocusRequester.requestFocus()
+        } catch (_: Exception) {}
     }
 }
 
@@ -267,7 +299,7 @@ private fun OptionRow(
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                    modifier = Modifier.fillMaxHeight().padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = option,
@@ -283,21 +315,25 @@ private fun OptionRow(
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun TvTextField(
+    modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     isPassword: Boolean = false,
-    modifier: Modifier = Modifier
+    isError: Boolean = false,
+    imeAction: ImeAction = ImeAction.Next,
+    onImeAction: (() -> Unit)? = null,
 ) {
     val fieldFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     var isFieldFocused by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
         Text(
             text = label,
             fontSize = 16.sp,
-            color = TvOnSurfaceDim,
+            color = if (isError) Color(0xFFF44336) else TvOnSurfaceDim,
             modifier = Modifier.padding(bottom = 4.dp)
         )
         Surface(
@@ -307,8 +343,10 @@ private fun TvTextField(
             },
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
             colors = ClickableSurfaceDefaults.colors(
-                containerColor = if (isFieldFocused) TvAccent.copy(alpha = 0.15f) else TvSurface,
-                focusedContainerColor = if (isFieldFocused) TvAccent.copy(alpha = 0.15f) else TvAccent.copy(alpha = 0.3f)
+                containerColor = if (isError) Color(0xFFF44336).copy(alpha = 0.1f)
+                    else if (isFieldFocused) TvAccent.copy(alpha = 0.15f) else TvSurface,
+                focusedContainerColor = if (isError) Color(0xFFF44336).copy(alpha = 0.15f)
+                    else if (isFieldFocused) TvAccent.copy(alpha = 0.15f) else TvAccent.copy(alpha = 0.3f)
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -328,7 +366,18 @@ private fun TvTextField(
                     singleLine = true,
                     visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Ascii
+                        keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Ascii,
+                        imeAction = imeAction
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = {
+                            if (onImeAction != null) onImeAction()
+                            else focusManager.moveFocus(FocusDirection.Down)
+                        },
+                        onDone = {
+                            if (onImeAction != null) onImeAction()
+                            else keyboardController?.hide()
+                        }
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -340,7 +389,7 @@ private fun TvTextField(
                             }
                         }
                 )
-                if (value.isEmpty()) {
+                if (value.isEmpty() && !isError) {
                     Text(
                         text = label,
                         fontSize = 20.sp,

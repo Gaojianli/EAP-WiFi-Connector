@@ -33,6 +33,9 @@
     <!-- ConnectingScreen -->
     <string name="connecting">正在连接…</string>
     <string name="connect_success">连接成功</string>
+    <string name="suggestion_added">已添加到 Wi-Fi 列表</string>
+    <string name="suggestion_added_hint">当处在 Wi-Fi 范围内，系统会自动完成连接</string>
+    <string name="suggestion_toast">请在系统弹窗中允许连接到 Wi-Fi</string>
     <string name="connect_failed">连接失败</string>
     <string name="error_add_network_failed">保存网络配置失败，请检查 EAP 方式、Phase 2 认证和证书设置</string>
     <string name="error_exception">连接出错：%s</string>
@@ -40,4 +43,5 @@
     <string name="btn_disconnect">断开连接</string>
     <string name="btn_retry">重试</string>
     <string name="permission_required">需要位置权限才能扫描 Wi-Fi 网络</string>
+    <string name="error_domain_required">Android 11+ 使用系统证书时必须填写域名 (Subject Match)</string>
 </resources>

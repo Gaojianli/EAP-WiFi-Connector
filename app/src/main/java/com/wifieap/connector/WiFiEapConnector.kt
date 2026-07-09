@@ -16,13 +16,10 @@ import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import java.io.InputStream
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
-import kotlin.collections.component1
-import kotlin.collections.component2
 
 data class WifiNetwork(
     val ssid: String,
@@ -40,6 +37,7 @@ class WiFiEapConnector(private val context: Context) {
         context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     private var scanReceiver: BroadcastReceiver? = null
+    private val scanHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     fun ensureWifiEnabled(): Boolean {
         if (!wifiManager.isWifiEnabled && Build.VERSION.SDK_INT < 29) {
@@ -58,24 +56,12 @@ class WiFiEapConnector(private val context: Context) {
         scanReceiver?.let {
             try { context.unregisterReceiver(it) } catch (_: Exception) {}
         }
+        scanHandler.removeCallbacksAndMessages(null)
 
         scanReceiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED) {
-                    onResults(emptyList())
-                    return
-                }
-                val results = wifiManager.scanResults ?: emptyList()
-                onResults(results
-                        .asSequence()
-                        .filter { it.capabilities.contains("EAP") || it.capabilities.contains("802.1x", ignoreCase = true) }
-                        .filter { it.SSID.isNotBlank() }
-                        .groupBy { it.SSID }
-                        .map { (_, scans) -> scans.maxByOrNull { it.level }!! }
-                        .sortedByDescending { it.level }
-                        .map { WifiNetwork(ssid = it.SSID, level = it.level, capabilities = it.capabilities) }
-                        .toList())
+                scanHandler.removeCallbacksAndMessages(null)
+                onResults(getEnterpriseWiFi())
             }
         }
 
@@ -84,10 +70,32 @@ class WiFiEapConnector(private val context: Context) {
             IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
         )
         wifiManager.startScan()
+
+        scanHandler.postDelayed({
+            onResults(getEnterpriseWiFi())
+        }, SCAN_TIMEOUT_MS)
+
         return true
     }
 
+    fun getEnterpriseWiFi():List<WifiNetwork>{
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED)
+            return emptyList()
+        val results = wifiManager.scanResults ?: emptyList()
+        return results
+            .asSequence()
+            .filter { it.capabilities.contains("EAP") || it.capabilities.contains("802.1x", ignoreCase = true) }
+            .filter { it.SSID.isNotBlank() }
+            .groupBy { it.SSID }
+            .map { (_, scans) -> scans.maxByOrNull { it.level }!! }
+            .sortedByDescending { it.level }
+            .map { WifiNetwork(ssid = it.SSID, level = it.level, capabilities = it.capabilities) }
+            .toList()
+    }
+
     fun stopScan() {
+        scanHandler.removeCallbacksAndMessages(null)
         scanReceiver?.let {
             try { context.unregisterReceiver(it) } catch (_: Exception) {}
         }
@@ -126,7 +134,7 @@ class WiFiEapConnector(private val context: Context) {
         useSystemCert: Boolean
     ): ConnectResult {
         if (useSystemCert && domain.isEmpty()) {
-            return ConnectResult.Failure("Android 11+ requires Domain (Subject Match) when using system certificates")
+            return ConnectResult.Failure(context.getString(R.string.error_domain_required))
         }
 
         try {
@@ -142,6 +150,7 @@ class WiFiEapConnector(private val context: Context) {
                         caCertificate = caCert
                     }
                 } else if (useSystemCert) {
+                    // setCaPath is @hide but required to pass WifiNetworkSuggestion's internal validation
                     try {
                         val method = WifiEnterpriseConfig::class.java.getMethod("setCaPath", String::class.java)
                         method.invoke(this, "/system/etc/security/cacerts")
@@ -269,7 +278,7 @@ class WiFiEapConnector(private val context: Context) {
         WifiEnterpriseConfig.Phase2.NONE -> "NONE"
         WifiEnterpriseConfig.Phase2.PAP -> "PAP"
         WifiEnterpriseConfig.Phase2.MSCHAP -> "MSCHAP"
-        WifiEnterpriseConfig.Phase2.MSCHAPV2 -> "MSCHAPV2"
+        WifiEnterpriseConfig.Phase2.MSCHAPV2 -> "MSCHAPv2"
         WifiEnterpriseConfig.Phase2.GTC -> "GTC"
         else -> "UNKNOWN($method)"
     }
@@ -304,5 +313,6 @@ class WiFiEapConnector(private val context: Context) {
 
     companion object {
         private const val TAG = "WiFiEapConnector"
+        private const val SCAN_TIMEOUT_MS = 8000L
     }
 }

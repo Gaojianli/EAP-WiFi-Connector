@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
     private var isScanning by mutableStateOf(false)
     private var connectState by mutableStateOf<ConnectState?>(null)
     private var connectError by mutableStateOf<String?>(null)
+    private var isSuggestionMode by mutableStateOf(false)
     private var selectedCertUri by mutableStateOf<Uri?>(null)
     private var selectedCertName by mutableStateOf<String?>(null)
 
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
                 },
                 connectState = connectState,
                 connectError = connectError,
+                isSuggestionMode = isSuggestionMode,
                 selectedCertUri = selectedCertUri,
                 selectedCertName = selectedCertName
             )
@@ -131,6 +133,7 @@ class MainActivity : ComponentActivity() {
     ) {
         connectState = ConnectState.Connecting
         connectError = null
+        isSuggestionMode = android.os.Build.VERSION.SDK_INT >= 29
         Thread {
             val result = wifiConnector.connectToWiFi(
                 ssid = ssid,
@@ -147,6 +150,9 @@ class MainActivity : ComponentActivity() {
                     is ConnectResult.Success -> {
                         connectState = ConnectState.Success
                         connectError = null
+                        if (isSuggestionMode) {
+                            android.widget.Toast.makeText(this@MainActivity, getString(R.string.suggestion_toast), android.widget.Toast.LENGTH_LONG).show()
+                        }
                     }
                     is ConnectResult.Failure -> {
                         connectState = ConnectState.Failed

@@ -34,6 +34,7 @@ fun ConnectingScreen(
     ssid: String,
     state: ConnectState?,
     errorMessage: String? = null,
+    isSuggestionMode: Boolean = false,
     onRetry: () -> Unit,
     onDone: () -> Unit,
     onDisconnect: () -> Unit
@@ -65,11 +66,21 @@ fun ConnectingScreen(
             }
             ConnectState.Success -> {
                 Text(
-                    text = stringResource(R.string.connect_success),
+                    text = if (isSuggestionMode) stringResource(R.string.suggestion_added)
+                           else stringResource(R.string.connect_success),
                     fontSize = 32.sp,
                     color = TvSuccess,
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    modifier = Modifier.padding(bottom = if (isSuggestionMode) 8.dp else 24.dp)
                 )
+
+                if (isSuggestionMode) {
+                    Text(
+                        text = stringResource(R.string.suggestion_added_hint),
+                        fontSize = 16.sp,
+                        color = TvOnSurfaceDim,
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    )
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Surface(
@@ -85,7 +96,7 @@ fun ConnectingScreen(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
+                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
                             Text(text = stringResource(R.string.btn_done), fontSize = 22.sp, color = Color.White)
                         }
@@ -102,7 +113,7 @@ fun ConnectingScreen(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
+                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
                             Text(text = stringResource(R.string.btn_disconnect), fontSize = 22.sp, color = Color.White)
                         }
@@ -146,7 +157,7 @@ fun ConnectingScreen(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
+                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
                             Text(text = stringResource(R.string.btn_retry), fontSize = 22.sp, color = Color.White)
                         }
@@ -163,7 +174,7 @@ fun ConnectingScreen(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.padding(horizontal = 40.dp, vertical = 12.dp)
+                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
                         ) {
                             Text(text = stringResource(R.string.btn_back), fontSize = 22.sp, color = Color.White)
                         }

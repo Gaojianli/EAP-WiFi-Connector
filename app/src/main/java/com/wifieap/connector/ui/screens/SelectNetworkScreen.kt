@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -53,12 +54,22 @@ fun SelectNetworkScreen(
         )
 
         if (isScanning) {
-            Text(
-                text = stringResource(R.string.scanning),
-                fontSize = 18.sp,
-                color = TvOnSurfaceDim,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 16.dp)
-            )
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = TvOnSurfaceDim,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.scanning),
+                    fontSize = 18.sp,
+                    color = TvOnSurfaceDim
+                )
+            }
         }
 
         if (networks.isEmpty() && !isScanning) {
@@ -94,18 +105,26 @@ fun SelectNetworkScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Surface(
-                onClick = onRefresh,
+                onClick = { if (!isScanning) onRefresh() },
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
                 colors = ClickableSurfaceDefaults.colors(
                     containerColor = TvSurface,
-                    focusedContainerColor = TvAccent
+                    focusedContainerColor = if (isScanning) TvSurface else TvAccent
                 ),
                 modifier = Modifier.height(56.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxHeight().padding(horizontal = 32.dp, vertical = 12.dp)
                 ) {
+                    if (isScanning) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     Text(
                         text = stringResource(R.string.refresh),
                         fontSize = 20.sp,
@@ -125,7 +144,7 @@ fun SelectNetworkScreen(
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp)
+                    modifier = Modifier.fillMaxHeight().padding(horizontal = 32.dp, vertical = 12.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.manual_input),
