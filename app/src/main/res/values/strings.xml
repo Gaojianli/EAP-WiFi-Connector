@@ -26,6 +26,7 @@
     <string name="label_ca_cert">CA Certificate</string>
     <string name="cert_system">System</string>
     <string name="cert_select_file">Select File</string>
+    <string name="cert_none">None (Trust First)</string>
     <string name="cert_pick_prompt">Tap to select certificate file</string>
     <string name="btn_connect">Connect</string>
     <string name="btn_back">Back</string>

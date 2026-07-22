@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.wifieap.connector.CertMode
 import com.wifieap.connector.WifiNetwork
 import com.wifieap.connector.ui.screens.ConnectingScreen
 import com.wifieap.connector.ui.screens.CredentialsScreen
@@ -29,7 +30,7 @@ class CredentialsFormState {
     var domain by mutableStateOf("")
     var eapIndex by mutableIntStateOf(2)
     var phase2Index by mutableIntStateOf(2)
-    var useSystemCert by mutableStateOf(true)
+    var certMode by mutableStateOf(CertMode.SYSTEM)
 
     fun resetFor(ssid: String) {
         editSsid = ssid
@@ -38,7 +39,7 @@ class CredentialsFormState {
         domain = ""
         eapIndex = 2
         phase2Index = 2
-        useSystemCert = true
+        certMode = CertMode.SYSTEM
     }
 }
 
@@ -47,7 +48,7 @@ fun WifiEapApp(
     networks: List<WifiNetwork>,
     isScanning: Boolean,
     onRefresh: () -> Unit,
-    onConnect: (ssid: String, username: String, password: String, domain: String, eapMethod: Int, phase2Method: Int, certUri: Uri?, useSystemCert: Boolean) -> Unit,
+    onConnect: (ssid: String, username: String, password: String, domain: String, eapMethod: Int, phase2Method: Int, certUri: Uri?, certMode: Int) -> Unit,
     onPickCertificate: () -> Unit,
     connectState: ConnectState?,
     connectError: String?,
@@ -96,10 +97,10 @@ fun WifiEapApp(
                     formState = credentialsForm,
                     selectedCertName = selectedCertName,
                     onPickCertificate = onPickCertificate,
-                    onConnect = { ssid, username, password, domain, eapMethod, phase2Method, certUri, useSystemCert ->
+                    onConnect = { ssid, username, password, domain, eapMethod, phase2Method, certUri, certMode ->
                         selectedSsid = ssid
                         step = WizardStep.Connecting
-                        onConnect(ssid, username, password, domain, eapMethod, phase2Method, certUri, useSystemCert)
+                        onConnect(ssid, username, password, domain, eapMethod, phase2Method, certUri, certMode)
                     },
                     onBack = { step = WizardStep.SelectNetwork },
                     selectedCertUri = selectedCertUri

@@ -32,6 +32,18 @@ sealed class ConnectResult {
     data class Failure(val reason: String) : ConnectResult()
 }
 
+/**
+ * CA 证书验证方式：
+ * - SYSTEM: 使用系统证书库验证服务器证书
+ * - CUSTOM: 使用用户选择的 CA 证书文件验证
+ * - NONE: 不验证证书，仅依赖 Trust On First Use（TOFU，安全性较低）
+ */
+object CertMode {
+    const val SYSTEM = 0
+    const val CUSTOM = 1
+    const val NONE = 2
+}
+
 class WiFiEapConnector(private val context: Context) {
     private val wifiManager =
         context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
@@ -110,15 +122,15 @@ class WiFiEapConnector(private val context: Context) {
         eapMethod: Int = WifiEnterpriseConfig.Eap.PEAP,
         phase2Method: Int = WifiEnterpriseConfig.Phase2.GTC,
         certificateUri: Uri? = null,
-        useSystemCert: Boolean = true
+        certMode: Int = CertMode.SYSTEM
     ): ConnectResult {
         Log.i(TAG, "Connecting to SSID: $ssid, SDK: ${Build.VERSION.SDK_INT}")
         ensureWifiEnabled()
 
         return if (Build.VERSION.SDK_INT >= 29) {
-            connectViaSuggestion(ssid, username, password, domain, eapMethod, phase2Method, certificateUri, useSystemCert)
+            connectViaSuggestion(ssid, username, password, domain, eapMethod, phase2Method, certificateUri, certMode)
         } else {
-            connectViaLegacy(ssid, username, password, domain, eapMethod, phase2Method, certificateUri, useSystemCert)
+            connectViaLegacy(ssid, username, password, domain, eapMethod, phase2Method, certificateUri, certMode)
         }
     }
 
@@ -131,9 +143,9 @@ class WiFiEapConnector(private val context: Context) {
         eapMethod: Int,
         phase2Method: Int,
         certificateUri: Uri?,
-        useSystemCert: Boolean
+        certMode: Int
     ): ConnectResult {
-        if (useSystemCert && domain.isEmpty()) {
+        if (certMode == CertMode.SYSTEM && domain.isEmpty()) {
             return ConnectResult.Failure(context.getString(R.string.error_domain_required))
         }
 
@@ -144,19 +156,40 @@ class WiFiEapConnector(private val context: Context) {
                 identity = username
                 this.password = password
                 domainSuffixMatch = domain
-                if (!useSystemCert && certificateUri != null) {
-                    val caCert = loadCertificateFromUri(certificateUri)
-                    if (caCert != null) {
-                        caCertificate = caCert
+                when (certMode) {
+                    CertMode.CUSTOM -> {
+                        if (certificateUri != null) {
+                            val caCert = loadCertificateFromUri(certificateUri)
+                            if (caCert != null) {
+                                caCertificate = caCert
+                                // 设置了 CA 根证书后必须显式关闭 Trust On First Use，
+                                // 否则会报 "Trust On First Use could not be set when
+                                // Root CA certificate is set" 并被拒绝
+                                if (Build.VERSION.SDK_INT >= 31) {
+                                    enableTrustOnFirstUse(false)
+                                }
+                            }
+                        }
                     }
-                } else if (useSystemCert) {
-                    // setCaPath is @hide but required to pass WifiNetworkSuggestion's internal validation
-                    try {
-                        val method = WifiEnterpriseConfig::class.java.getMethod("setCaPath", String::class.java)
-                        method.invoke(this, "/system/etc/security/cacerts")
-                    } catch (_: Exception) {}
-                    if (Build.VERSION.SDK_INT >= 33) {
-                        enableTrustOnFirstUse(true)
+                    CertMode.SYSTEM -> {
+                        // setCaPath is @hide but required to pass WifiNetworkSuggestion's internal validation
+                        var caPathSet = false
+                        try {
+                            val method = WifiEnterpriseConfig::class.java.getMethod("setCaPath", String::class.java)
+                            method.invoke(this, "/system/etc/security/cacerts")
+                            caPathSet = true
+                        } catch (_: Exception) {}
+                        // 只有在 caPath 设置失败（即未配置任何 CA）时才回退到 TOFU，
+                        // 否则同时设置 CA 路径与 TOFU 会导致 WifiConfigManager 拒绝该配置
+                        if (!caPathSet && Build.VERSION.SDK_INT >= 31) {
+                            enableTrustOnFirstUse(true)
+                        }
+                    }
+                    CertMode.NONE -> {
+                        // 不设置任何证书，仅依赖 Trust On First Use
+                        if (Build.VERSION.SDK_INT >= 31) {
+                            enableTrustOnFirstUse(true)
+                        }
                     }
                 }
             }
@@ -176,11 +209,11 @@ class WiFiEapConnector(private val context: Context) {
                 Log.i(TAG, "Network suggestion added successfully")
                 ConnectResult.Success
             } else {
-                val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+                val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, certMode, certificateUri != null)
                 ConnectResult.Failure("addNetworkSuggestions failed: status=$status\n$diagnostic")
             }
         } catch (e: Exception) {
-            val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+            val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, certMode, certificateUri != null)
             return ConnectResult.Failure("${e.javaClass.simpleName}: ${e.message}\n$diagnostic")
         }
     }
@@ -193,7 +226,7 @@ class WiFiEapConnector(private val context: Context) {
         eapMethod: Int,
         phase2Method: Int,
         certificateUri: Uri?,
-        useSystemCert: Boolean
+        certMode: Int
     ): ConnectResult {
         try {
             val wifiConfig = WifiConfiguration().apply {
@@ -206,7 +239,7 @@ class WiFiEapConnector(private val context: Context) {
                     if (domain.isNotEmpty()) {
                         subjectMatch = domain
                     }
-                    if (!useSystemCert && certificateUri != null) {
+                    if (certMode == CertMode.CUSTOM && certificateUri != null) {
                         val caCert = loadCertificateFromUri(certificateUri)
                         if (caCert != null) {
                             caCertificate = caCert
@@ -234,11 +267,11 @@ class WiFiEapConnector(private val context: Context) {
                 wifiManager.reconnect()
                 ConnectResult.Success
             } else {
-                val diagnostic = buildDiagnosticInfo(networkId, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+                val diagnostic = buildDiagnosticInfo(networkId, eapMethod, phase2Method, certMode, certificateUri != null)
                 ConnectResult.Failure("addNetwork failed\n$diagnostic")
             }
         } catch (e: Exception) {
-            val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, useSystemCert, certificateUri != null)
+            val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, certMode, certificateUri != null)
             return ConnectResult.Failure("${e.javaClass.simpleName}: ${e.message}\n$diagnostic")
         }
     }
@@ -247,7 +280,7 @@ class WiFiEapConnector(private val context: Context) {
         networkId: Int,
         eapMethod: Int,
         phase2Method: Int,
-        useSystemCert: Boolean,
+        certMode: Int,
         hasCert: Boolean
     ): String {
         val hasLocation = ContextCompat.checkSelfPermission(
@@ -260,7 +293,7 @@ class WiFiEapConnector(private val context: Context) {
             "device=${Build.MANUFACTURER} ${Build.MODEL}, " +
             "wifiEnabled=${wifiManager.isWifiEnabled}, " +
             "eap=${eapMethodName(eapMethod)}, phase2=${phase2MethodName(phase2Method)}, " +
-            "useSystemCert=$useSystemCert, hasCert=$hasCert, " +
+            "certMode=$certMode, hasCert=$hasCert, " +
             "location=$hasLocation, wifi=$hasWifi"
     }
 

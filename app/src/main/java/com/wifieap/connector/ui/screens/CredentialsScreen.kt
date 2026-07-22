@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
+import com.wifieap.connector.CertMode
 import com.wifieap.connector.R
 import com.wifieap.connector.ui.CredentialsFormState
 import com.wifieap.connector.ui.theme.TvAccent
@@ -42,7 +43,7 @@ fun CredentialsScreen(
     selectedCertName: String?,
     selectedCertUri: Uri?,
     onPickCertificate: () -> Unit,
-    onConnect: (ssid: String, username: String, password: String, domain: String, eapMethod: Int, phase2Method: Int, certUri: Uri?, useSystemCert: Boolean) -> Unit,
+    onConnect: (ssid: String, username: String, password: String, domain: String, eapMethod: Int, phase2Method: Int, certUri: Uri?, certMode: Int) -> Unit,
     onBack: () -> Unit
 ) {
     var showAdvanced by remember { mutableStateOf(false) }
@@ -170,12 +171,16 @@ fun CredentialsScreen(
             Text(text = stringResource(R.string.label_ca_cert), fontSize = 16.sp, color = TvOnSurfaceDim)
             Spacer(modifier = Modifier.height(8.dp))
             OptionRow(
-                options = listOf(stringResource(R.string.cert_system), stringResource(R.string.cert_select_file)),
-                selectedIndex = if (formState.useSystemCert) 0 else 1,
-                onSelect = { formState.useSystemCert = it == 0 }
+                options = listOf(
+                    stringResource(R.string.cert_system),
+                    stringResource(R.string.cert_select_file),
+                    stringResource(R.string.cert_none)
+                ),
+                selectedIndex = formState.certMode,
+                onSelect = { formState.certMode = it }
             )
 
-            if (!formState.useSystemCert) {
+            if (formState.certMode == CertMode.CUSTOM) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     onClick = onPickCertificate,
@@ -234,7 +239,7 @@ fun CredentialsScreen(
                         3 -> WifiEnterpriseConfig.Phase2.MSCHAPV2
                         else -> WifiEnterpriseConfig.Phase2.GTC
                     }
-                    onConnect(finalSsid, formState.username, formState.password, formState.domain, eapMethod, phase2Method, selectedCertUri, formState.useSystemCert)
+                    onConnect(finalSsid, formState.username, formState.password, formState.domain, eapMethod, phase2Method, selectedCertUri, formState.certMode)
                 },
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
                 colors = ClickableSurfaceDefaults.colors(

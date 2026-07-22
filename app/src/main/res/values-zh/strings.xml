@@ -26,6 +26,7 @@
     <string name="label_ca_cert">CA 证书</string>
     <string name="cert_system">系统验证</string>
     <string name="cert_select_file">选择文件</string>
+    <string name="cert_none">不验证（首次信任）</string>
     <string name="cert_pick_prompt">点击选择证书文件</string>
     <string name="btn_connect">连接</string>
     <string name="btn_back">返回</string>

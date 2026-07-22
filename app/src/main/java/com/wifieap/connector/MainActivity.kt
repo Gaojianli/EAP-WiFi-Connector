@@ -52,8 +52,8 @@ class MainActivity : ComponentActivity() {
                 networks = networks,
                 isScanning = isScanning,
                 onRefresh = { startWifiScan() },
-                onConnect = { ssid, username, password, domain, eapMethod, phase2Method, certUri, useSystemCert ->
-                    doConnect(ssid, username, password, domain, eapMethod, phase2Method, certUri, useSystemCert)
+                onConnect = { ssid, username, password, domain, eapMethod, phase2Method, certUri, certMode ->
+                    doConnect(ssid, username, password, domain, eapMethod, phase2Method, certUri, certMode)
                 },
                 onPickCertificate = {
                     certPickerLauncher.launch(arrayOf(
@@ -124,7 +124,7 @@ class MainActivity : ComponentActivity() {
         eapMethod: Int,
         phase2Method: Int,
         certUri: Uri?,
-        useSystemCert: Boolean
+        certMode: Int
     ) {
         connectState = ConnectState.Connecting
         connectError = null
@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
                 eapMethod = eapMethod,
                 phase2Method = phase2Method,
                 certificateUri = certUri,
-                useSystemCert = useSystemCert
+                certMode = certMode
             )
             runOnUiThread {
                 when (result) {
