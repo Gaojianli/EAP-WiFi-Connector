@@ -44,5 +44,6 @@
     <string name="btn_disconnect">断开连接</string>
     <string name="btn_retry">重试</string>
     <string name="permission_required">需要位置权限才能扫描 Wi-Fi 网络</string>
-    <string name="error_domain_required">Android 11+ 使用系统证书时必须填写域名 (Subject Match)</string>
+    <string name="error_domain_required">使用系统验证或不验证证书（TOFU）时必须填写域名 (Subject Match)</string>
+    <string name="error_tofu_unsupported">当前系统版本不支持 Trust On First Use，请选择系统验证或自定义证书（需要 Android 12 及以上）</string>
 </resources>

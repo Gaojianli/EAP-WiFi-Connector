@@ -170,14 +170,23 @@ fun CredentialsScreen(
 
             Text(text = stringResource(R.string.label_ca_cert), fontSize = 16.sp, color = TvOnSurfaceDim)
             Spacer(modifier = Modifier.height(8.dp))
+            val certModeOptions = remember {
+                buildList {
+                    add(CertMode.SYSTEM)
+                    add(CertMode.CUSTOM)
+                    // Trust On First Use 仅在 Android 12 (API 31)+ 系统上受支持
+                    if (android.os.Build.VERSION.SDK_INT >= 31) add(CertMode.NONE)
+                }
+            }
+            val certModeLabels = listOf(
+                stringResource(R.string.cert_system),
+                stringResource(R.string.cert_select_file),
+                stringResource(R.string.cert_none)
+            )
             OptionRow(
-                options = listOf(
-                    stringResource(R.string.cert_system),
-                    stringResource(R.string.cert_select_file),
-                    stringResource(R.string.cert_none)
-                ),
-                selectedIndex = formState.certMode,
-                onSelect = { formState.certMode = it }
+                options = certModeOptions.map { certModeLabels[it] },
+                selectedIndex = certModeOptions.indexOf(formState.certMode).coerceAtLeast(0),
+                onSelect = { formState.certMode = certModeOptions[it] }
             )
 
             if (formState.certMode == CertMode.CUSTOM) {

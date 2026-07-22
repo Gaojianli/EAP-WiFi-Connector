@@ -145,8 +145,15 @@ class WiFiEapConnector(private val context: Context) {
         certificateUri: Uri?,
         certMode: Int
     ): ConnectResult {
-        if (certMode == CertMode.SYSTEM && domain.isEmpty()) {
+        // System / None(TOFU) 模式都依赖域名匹配（Domain Suffix Match）来完成"验证"，
+        // 否则框架会认为该 EAP 配置"要求服务器证书但未启用验证"而拒绝
+        if ((certMode == CertMode.SYSTEM || certMode == CertMode.NONE) && domain.isEmpty()) {
             return ConnectResult.Failure(context.getString(R.string.error_domain_required))
+        }
+        // Trust On First Use 仅在 Android 12 (API 31) 及以上系统才存在，
+        // 更低版本选择"不验证证书"时无法满足框架的证书验证要求
+        if (certMode == CertMode.NONE && Build.VERSION.SDK_INT < 31) {
+            return ConnectResult.Failure(context.getString(R.string.error_tofu_unsupported))
         }
 
         try {
