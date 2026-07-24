@@ -45,7 +45,10 @@
     <string name="btn_disconnect">Disconnect</string>
     <string name="btn_retry">Retry</string>
     <string name="permission_required">Location permission is required to scan Wi-Fi networks</string>
-    <string name="error_domain_required">Domain (Subject Match) is required when using System certificate validation or None (TOFU)</string>
-    <string name="error_tofu_unsupported">Trust On First Use is not supported on this system version. Please choose System or Custom certificate (requires Android 12+)</string>
+    <string name="error_domain_required">Domain (Subject Match) is required</string>
+    <string name="error_tofu_unsupported">Trust On First Use is not supported on this system version. Please choose System or Custom certificate (requires Android 13+)</string>
+    <string name="error_cert_required">Please select a certificate file for Custom certificate mode</string>
+    <string name="error_cert_invalid">Failed to read the selected certificate. Please choose a valid PEM/DER file</string>
+    <string name="error_system_cert_unavailable">System certificate validation is unavailable on this device. Please use Custom certificate</string>
     <string name="no_file_picker">No file picker found on this device. Please install a file manager or use System certificate validation.</string>
 </resources>

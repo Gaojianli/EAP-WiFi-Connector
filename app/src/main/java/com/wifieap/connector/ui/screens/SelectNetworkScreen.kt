@@ -8,11 +8,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -103,8 +107,9 @@ fun SelectNetworkScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            var refreshFocused by remember { mutableStateOf(false) }
             Button(
                 onClick = { if (!isScanning) onRefresh() },
                 colors = ButtonDefaults.colors(
@@ -113,12 +118,13 @@ fun SelectNetworkScreen(
                     focusedContainerColor = Color.White,
                     focusedContentColor = TvAccent
                 ),
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp)
+                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp),
+                modifier = Modifier.onFocusChanged { refreshFocused = it.isFocused }
             ) {
                 if (isScanning) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = Color.White,
+                        color = if (refreshFocused) TvAccent else Color.White,
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))

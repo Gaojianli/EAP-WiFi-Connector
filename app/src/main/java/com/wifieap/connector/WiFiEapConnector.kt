@@ -21,6 +21,7 @@ import java.io.InputStream
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 
+
 data class WifiNetwork(
     val ssid: String,
     val level: Int,
@@ -145,15 +146,25 @@ class WiFiEapConnector(private val context: Context) {
         certificateUri: Uri?,
         certMode: Int
     ): ConnectResult {
-        // System / None(TOFU) 模式都依赖域名匹配（Domain Suffix Match）来完成"验证"，
-        // 否则框架会认为该 EAP 配置"要求服务器证书但未启用验证"而拒绝
-        if ((certMode == CertMode.SYSTEM || certMode == CertMode.NONE) && domain.isEmpty()) {
+        // 所有模式都依赖域名匹配完成服务器证书验证：Builder 的
+        // isMandatoryParameterSetForServerCertValidation() 要求 domain 非空，
+        // 否则会以 "要求服务器证书但未启用验证" 拒绝该配置（TOFU 也不例外）。
+        if (domain.isEmpty()) {
             return ConnectResult.Failure(context.getString(R.string.error_domain_required))
         }
-        // Trust On First Use 仅在 Android 12 (API 31) 及以上系统才存在，
-        // 更低版本选择"不验证证书"时无法满足框架的证书验证要求
-        if (certMode == CertMode.NONE && Build.VERSION.SDK_INT < 31) {
+        if (certMode == CertMode.CUSTOM && certificateUri == null) {
+            return ConnectResult.Failure(context.getString(R.string.error_cert_required))
+        }
+        // enableTrustOnFirstUse 是 API 33 才加入的方法，更低版本无法启用 TOFU。
+        if (certMode == CertMode.NONE && Build.VERSION.SDK_INT < 33) {
             return ConnectResult.Failure(context.getString(R.string.error_tofu_unsupported))
+        }
+
+        val customCaCert: X509Certificate? = if (certMode == CertMode.CUSTOM) {
+            loadCertificateFromUri(certificateUri!!)
+                ?: return ConnectResult.Failure(context.getString(R.string.error_cert_invalid))
+        } else {
+            null
         }
 
         try {
@@ -165,38 +176,28 @@ class WiFiEapConnector(private val context: Context) {
                 domainSuffixMatch = domain
                 when (certMode) {
                     CertMode.CUSTOM -> {
-                        if (certificateUri != null) {
-                            val caCert = loadCertificateFromUri(certificateUri)
-                            if (caCert != null) {
-                                caCertificate = caCert
-                                // 设置了 CA 根证书后必须显式关闭 Trust On First Use，
-                                // 否则会报 "Trust On First Use could not be set when
-                                // Root CA certificate is set" 并被拒绝
-                                if (Build.VERSION.SDK_INT >= 31) {
-                                    enableTrustOnFirstUse(false)
-                                }
-                            }
+                        caCertificate = customCaCert
+                        // 设置了 CA 根证书后必须关闭 TOFU，二者互斥否则框架拒绝该配置。
+                        if (Build.VERSION.SDK_INT >= 33) {
+                            enableTrustOnFirstUse(false)
                         }
                     }
                     CertMode.SYSTEM -> {
-                        // setCaPath is @hide but required to pass WifiNetworkSuggestion's internal validation
-                        var caPathSet = false
-                        try {
-                            val method = WifiEnterpriseConfig::class.java.getMethod("setCaPath", String::class.java)
-                            method.invoke(this, "/system/etc/security/cacerts")
-                            caPathSet = true
-                        } catch (_: Exception) {}
-                        // 只有在 caPath 设置失败（即未配置任何 CA）时才回退到 TOFU，
-                        // 否则同时设置 CA 路径与 TOFU 会导致 WifiConfigManager 拒绝该配置
-                        if (!caPathSet && Build.VERSION.SDK_INT >= 31) {
-                            enableTrustOnFirstUse(true)
+                        // setCaPath 是 @hide API，用于让系统信任库通过 Builder 的证书校验。
+                        // 反射失败时，API 33+ 回退到 TOFU，更低版本无路可走。
+                        val caPathSet = trySetSystemCaPath(this)
+                        if (!caPathSet) {
+                            if (Build.VERSION.SDK_INT >= 33) {
+                                enableTrustOnFirstUse(true)
+                            } else {
+                                return ConnectResult.Failure(context.getString(R.string.error_system_cert_unavailable))
+                            }
                         }
                     }
                     CertMode.NONE -> {
-                        // 不设置任何证书，仅依赖 Trust On First Use
-                        if (Build.VERSION.SDK_INT >= 31) {
-                            enableTrustOnFirstUse(true)
-                        }
+                        // TOFU
+                        trySetSystemCaPath(this)
+                        enableTrustOnFirstUse(true)
                     }
                 }
             }
@@ -207,7 +208,10 @@ class WiFiEapConnector(private val context: Context) {
                 .setIsAppInteractionRequired(true)
                 .build()
 
-            if (Build.VERSION.SDK_INT >= 30) {
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+                // getNetworkSuggestions() 需要 API 30，API 29 传空列表清除本 app 的全部 suggestion。
+                wifiManager.removeNetworkSuggestions(ArrayList<WifiNetworkSuggestion?>())
+            } else {
                 wifiManager.removeNetworkSuggestions(wifiManager.networkSuggestions)
             }
 
@@ -219,9 +223,19 @@ class WiFiEapConnector(private val context: Context) {
                 val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, certMode, certificateUri != null)
                 ConnectResult.Failure("addNetworkSuggestions failed: status=$status\n$diagnostic")
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             val diagnostic = buildDiagnosticInfo(-1, eapMethod, phase2Method, certMode, certificateUri != null)
             return ConnectResult.Failure("${e.javaClass.simpleName}: ${e.message}\n$diagnostic")
+        }
+    }
+
+    private fun trySetSystemCaPath(config: WifiEnterpriseConfig): Boolean {
+        return try {
+            val method = WifiEnterpriseConfig::class.java.getMethod("setCaPath", String::class.java)
+            method.invoke(config, "/system/etc/security/cacerts")
+            true
+        } catch (_: Throwable) {
+            false
         }
     }
 
@@ -339,9 +353,7 @@ class WiFiEapConnector(private val context: Context) {
 
     fun disconnectWiFi() {
         try {
-            if (Build.VERSION.SDK_INT >= 30) {
-                wifiManager.removeNetworkSuggestions(wifiManager.networkSuggestions)
-            } else if (Build.VERSION.SDK_INT >= 29) {
+            if (Build.VERSION.SDK_INT >= 29) {
                 wifiManager.removeNetworkSuggestions(emptyList())
             } else {
                 wifiManager.disconnect()

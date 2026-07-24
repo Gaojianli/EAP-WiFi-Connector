@@ -45,7 +45,10 @@
     <string name="btn_disconnect">断开连接</string>
     <string name="btn_retry">重试</string>
     <string name="permission_required">需要位置权限才能扫描 Wi-Fi 网络</string>
-    <string name="error_domain_required">使用系统验证或不验证证书（TOFU）时必须填写域名 (Subject Match)</string>
-    <string name="error_tofu_unsupported">当前系统版本不支持 Trust On First Use，请选择系统验证或自定义证书（需要 Android 12 及以上）</string>
+    <string name="error_domain_required">必须填写域名 (Subject Match)</string>
+    <string name="error_tofu_unsupported">当前系统版本不支持 Trust On First Use，请选择系统验证或自定义证书（需要 Android 13 及以上）</string>
+    <string name="error_cert_required">自定义证书模式下请先选择证书文件</string>
+    <string name="error_cert_invalid">读取所选证书失败，请选择有效的 PEM/DER 文件</string>
+    <string name="error_system_cert_unavailable">此设备不支持系统证书验证，请改用自定义证书</string>
     <string name="no_file_picker">此设备未找到文件选择器，请安装文件管理器或改用系统证书验证</string>
 </resources>

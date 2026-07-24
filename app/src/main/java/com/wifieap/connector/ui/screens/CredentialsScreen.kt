@@ -158,22 +158,14 @@ fun CredentialsScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            TvTextField(
-                value = formState.domain,
-                onValueChange = { formState.domain = it },
-                label = stringResource(R.string.label_domain),
-                modifier = Modifier.widthIn(max = 600.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
             Text(text = stringResource(R.string.label_ca_cert), fontSize = 16.sp, color = TvOnSurfaceDim)
             Spacer(modifier = Modifier.height(8.dp))
             val certModeOptions = remember {
                 buildList {
                     add(CertMode.SYSTEM)
                     add(CertMode.CUSTOM)
-                    // Trust On First Use 仅在 Android 12 (API 31)+ 系统上受支持
-                    if (android.os.Build.VERSION.SDK_INT >= 31) add(CertMode.NONE)
+                    // TOFU（enableTrustOnFirstUse）需要 API 33
+                    if (android.os.Build.VERSION.SDK_INT >= 33) add(CertMode.NONE)
                 }
             }
             val certModeLabels = listOf(
@@ -210,6 +202,14 @@ fun CredentialsScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            TvTextField(
+                value = formState.domain,
+                onValueChange = { formState.domain = it },
+                label = stringResource(R.string.label_domain),
+                modifier = Modifier.widthIn(max = 600.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -294,7 +294,7 @@ private fun OptionRow(
     selectedIndex: Int,
     onSelect: (Int) -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
         options.forEachIndexed { index, option ->
             FilterChip(
                 selected = index == selectedIndex,
