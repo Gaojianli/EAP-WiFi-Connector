@@ -105,54 +105,39 @@ fun SelectNetworkScreen(
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Surface(
+            Button(
                 onClick = { if (!isScanning) onRefresh() },
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = TvSurface,
-                    focusedContainerColor = if (isScanning) TvSurface else TvAccent
+                colors = ButtonDefaults.colors(
+                    containerColor = TvAccent,
+                    contentColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    focusedContentColor = TvAccent
                 ),
-                modifier = Modifier.height(56.dp)
+                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxHeight().padding(horizontal = 32.dp, vertical = 12.dp)
-                ) {
-                    if (isScanning) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    Text(
-                        text = stringResource(R.string.refresh),
-                        fontSize = 20.sp,
-                        color = Color.White
+                if (isScanning) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
+                Text(
+                    text = stringResource(R.string.refresh),
+                    fontSize = 20.sp
+                )
             }
 
-            Surface(
+            OutlinedButton(
                 onClick = onManualInput,
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = TvSurface,
-                    focusedContainerColor = TvAccent
-                ),
-                modifier = Modifier.height(56.dp).focusRequester(manualFocusRequester)
+                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp),
+                modifier = Modifier.focusRequester(manualFocusRequester)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxHeight().padding(horizontal = 32.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.manual_input),
-                        fontSize = 20.sp,
-                        color = Color.White
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.manual_input),
+                    fontSize = 20.sp
+                )
             }
         }
     }

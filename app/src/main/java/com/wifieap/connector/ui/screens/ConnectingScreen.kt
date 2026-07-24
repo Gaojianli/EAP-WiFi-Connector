@@ -1,9 +1,15 @@
 package com.wifieap.connector.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,9 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.*
+import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.OutlinedButton
+import androidx.tv.material3.Text
 import com.wifieap.connector.R
 import com.wifieap.connector.ui.ConnectState
 import com.wifieap.connector.ui.theme.TvAccent
@@ -26,7 +37,7 @@ import com.wifieap.connector.ui.theme.TvBackground
 import com.wifieap.connector.ui.theme.TvError
 import com.wifieap.connector.ui.theme.TvOnSurfaceDim
 import com.wifieap.connector.ui.theme.TvSuccess
-import com.wifieap.connector.ui.theme.TvSurface
+import com.wifieap.connector.ui.theme.WifiEapTheme
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -81,23 +92,18 @@ fun ConnectingScreen(
                     )
                 }
 
-                Surface(
+                Button(
                     onClick = onDone,
-                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                    colors = ClickableSurfaceDefaults.colors(
+                    colors = ButtonDefaults.colors(
                         containerColor = TvAccent,
-                        focusedContainerColor = TvAccent.copy(alpha = 0.8f)
+                        contentColor = Color.White,
+                        focusedContainerColor = Color.White,
+                        focusedContentColor = TvAccent
                     ),
-                    modifier = Modifier
-                        .height(56.dp)
-                        .focusRequester(focusRequester)
+                    contentPadding = PaddingValues(horizontal = 40.dp, vertical = 14.dp),
+                    modifier = Modifier.focusRequester(focusRequester)
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
-                    ) {
-                        Text(text = stringResource(R.string.btn_done), fontSize = 22.sp, color = Color.White)
-                    }
+                    Text(text = stringResource(R.string.btn_done), fontSize = 22.sp)
                 }
             }
             ConnectState.Failed -> {
@@ -124,40 +130,25 @@ fun ConnectingScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Surface(
+                    Button(
                         onClick = onRetry,
-                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                        colors = ClickableSurfaceDefaults.colors(
+                        colors = ButtonDefaults.colors(
                             containerColor = TvAccent,
-                            focusedContainerColor = TvAccent.copy(alpha = 0.8f)
+                            contentColor = Color.White,
+                            focusedContainerColor = Color.White,
+                            focusedContentColor = TvAccent
                         ),
-                        modifier = Modifier
-                            .height(56.dp)
-                            .focusRequester(focusRequester)
+                        contentPadding = PaddingValues(horizontal = 40.dp, vertical = 14.dp),
+                        modifier = Modifier.focusRequester(focusRequester)
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
-                        ) {
-                            Text(text = stringResource(R.string.btn_retry), fontSize = 22.sp, color = Color.White)
-                        }
+                        Text(text = stringResource(R.string.btn_retry), fontSize = 22.sp)
                     }
 
-                    Surface(
+                    OutlinedButton(
                         onClick = onDone,
-                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                        colors = ClickableSurfaceDefaults.colors(
-                            containerColor = TvSurface,
-                            focusedContainerColor = TvAccent.copy(alpha = 0.3f)
-                        ),
-                        modifier = Modifier.height(56.dp)
+                        contentPadding = PaddingValues(horizontal = 40.dp, vertical = 14.dp)
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
-                        ) {
-                            Text(text = stringResource(R.string.btn_back), fontSize = 22.sp, color = Color.White)
-                        }
+                        Text(text = stringResource(R.string.btn_back), fontSize = 22.sp)
                     }
                 }
             }
@@ -168,5 +159,59 @@ fun ConnectingScreen(
         if (state == ConnectState.Success || state == ConnectState.Failed) {
             try { focusRequester.requestFocus() } catch (_: Exception) {}
         }
+    }
+}
+
+@Preview(device = "id:tv_1080p", showBackground = true)
+@Composable
+private fun ConnectingScreenConnectingPreview() {
+    WifiEapTheme {
+        ConnectingScreen(
+            ssid = "Corp-WiFi",
+            state = ConnectState.Connecting,
+            onRetry = {},
+            onDone = {}
+        )
+    }
+}
+
+@Preview(device = "id:tv_1080p", showBackground = true)
+@Composable
+private fun ConnectingScreenSuccessPreview() {
+    WifiEapTheme {
+        ConnectingScreen(
+            ssid = "Corp-WiFi",
+            state = ConnectState.Success,
+            onRetry = {},
+            onDone = {}
+        )
+    }
+}
+
+@Preview(device = "id:tv_1080p", showBackground = true)
+@Composable
+private fun ConnectingScreenSuggestionPreview() {
+    WifiEapTheme {
+        ConnectingScreen(
+            ssid = "Corp-WiFi",
+            state = ConnectState.Success,
+            isSuggestionMode = true,
+            onRetry = {},
+            onDone = {}
+        )
+    }
+}
+
+@Preview(device = "id:tv_1080p", showBackground = true)
+@Composable
+private fun ConnectingScreenFailedPreview() {
+    WifiEapTheme {
+        ConnectingScreen(
+            ssid = "Corp-WiFi",
+            state = ConnectState.Failed,
+            errorMessage = "addNetwork failed\nsdk=30, device=Xiaomi MiTV, eap=TTLS, phase2=PAP",
+            onRetry = {},
+            onDone = {}
+        )
     }
 }

@@ -56,13 +56,21 @@ class MainActivity : ComponentActivity() {
                     doConnect(ssid, username, password, domain, eapMethod, phase2Method, certUri, certMode)
                 },
                 onPickCertificate = {
-                    certPickerLauncher.launch(arrayOf(
-                        "application/x-pem-file",
-                        "application/x-x509-ca-cert",
-                        "application/pkcs8",
-                        "application/x-pkcs12",
-                        "*/*"
-                    ))
+                    try {
+                        certPickerLauncher.launch(arrayOf(
+                            "application/x-pem-file",
+                            "application/x-x509-ca-cert",
+                            "application/pkcs8",
+                            "application/x-pkcs12",
+                            "*/*"
+                        ))
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(
+                            this,
+                            getString(R.string.no_file_picker),
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
                 },
                 connectState = connectState,
                 connectError = connectError,

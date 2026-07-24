@@ -28,6 +28,7 @@
     <string name="cert_select_file">Select File</string>
     <string name="cert_none">None (Trust First)</string>
     <string name="cert_pick_prompt">Tap to select certificate file</string>
+    <string name="show_password">Show password</string>
     <string name="btn_connect">Connect</string>
     <string name="btn_back">Back</string>
 
@@ -46,4 +47,5 @@
     <string name="permission_required">Location permission is required to scan Wi-Fi networks</string>
     <string name="error_domain_required">Domain (Subject Match) is required when using System certificate validation or None (TOFU)</string>
     <string name="error_tofu_unsupported">Trust On First Use is not supported on this system version. Please choose System or Custom certificate (requires Android 12+)</string>
+    <string name="no_file_picker">No file picker found on this device. Please install a file manager or use System certificate validation.</string>
 </resources>

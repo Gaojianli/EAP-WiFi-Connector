@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
@@ -33,6 +34,7 @@ import com.wifieap.connector.ui.theme.TvAccent
 import com.wifieap.connector.ui.theme.TvBackground
 import com.wifieap.connector.ui.theme.TvOnSurfaceDim
 import com.wifieap.connector.ui.theme.TvSurface
+import com.wifieap.connector.ui.theme.WifiEapTheme
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -47,6 +49,7 @@ fun CredentialsScreen(
     onBack: () -> Unit
 ) {
     var showAdvanced by remember { mutableStateOf(false) }
+    var showPassword by remember { mutableStateOf(false) }
     var ssidError by remember { mutableStateOf(false) }
     var usernameError by remember { mutableStateOf(false) }
     var passwordError by remember { mutableStateOf(false) }
@@ -69,8 +72,8 @@ fun CredentialsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(TvBackground)
-            .padding(48.dp)
             .verticalScroll(rememberScrollState())
+            .padding(horizontal = 48.dp, vertical = 48.dp)
     ) {
         Text(
             text = titleText,
@@ -109,34 +112,29 @@ fun CredentialsScreen(
             value = formState.password,
             onValueChange = { formState.password = it; passwordError = false },
             label = stringResource(R.string.label_password),
-            isPassword = true,
+            isPassword = !showPassword,
             imeAction = ImeAction.Done,
             isError = passwordError,
             modifier = Modifier
                 .widthIn(max = 600.dp)
                 .focusRequester(passwordFocusRequester)
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        FilterChip(
+            selected = showPassword,
+            onClick = { showPassword = !showPassword },
+            colors = accentChipColors()
+        ) {
+            Text(text = stringResource(R.string.show_password))
+        }
         Spacer(modifier = Modifier.height(24.dp))
 
-        Surface(
+        FilterChip(
+            selected = showAdvanced,
             onClick = { showAdvanced = !showAdvanced },
-            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-            colors = ClickableSurfaceDefaults.colors(
-                containerColor = TvSurface,
-                focusedContainerColor = TvAccent.copy(alpha = 0.3f)
-            ),
-            modifier = Modifier.widthIn(max = 600.dp).height(48.dp)
+            colors = accentChipColors()
         ) {
-            Box(
-                contentAlignment = Alignment.CenterStart,
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
-            ) {
-                Text(
-                    text = if (showAdvanced) "▼ $advancedLabel" else "▶ $advancedLabel",
-                    fontSize = 18.sp,
-                    color = Color.White
-                )
-            }
+            Text(text = if (showAdvanced) "▼ $advancedLabel" else "▶ $advancedLabel")
         }
 
         if (showAdvanced) {
@@ -217,23 +215,23 @@ fun CredentialsScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Surface(
+            Button(
                 onClick = {
                     val finalSsid = if (isManualSsid) formState.editSsid else ssid
                     if (isManualSsid && finalSsid.isBlank()) {
                         ssidError = true
                         ssidFocusRequester.requestFocus()
-                        return@Surface
+                        return@Button
                     }
                     if (formState.username.isBlank()) {
                         usernameError = true
                         usernameFocusRequester.requestFocus()
-                        return@Surface
+                        return@Button
                     }
                     if (formState.password.isBlank()) {
                         passwordError = true
                         passwordFocusRequester.requestFocus()
-                        return@Surface
+                        return@Button
                     }
                     val eapMethod = when (formState.eapIndex) {
                         0 -> WifiEnterpriseConfig.Eap.PEAP
@@ -250,38 +248,26 @@ fun CredentialsScreen(
                     }
                     onConnect(finalSsid, formState.username, formState.password, formState.domain, eapMethod, phase2Method, selectedCertUri, formState.certMode)
                 },
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                colors = ClickableSurfaceDefaults.colors(
+                colors = ButtonDefaults.colors(
                     containerColor = TvAccent,
-                    focusedContainerColor = TvAccent.copy(alpha = 0.8f)
+                    contentColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    focusedContentColor = TvAccent
                 ),
-                modifier = Modifier.height(56.dp)
+                contentPadding = PaddingValues(horizontal = 40.dp, vertical = 14.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
-                ) {
-                    Text(text = stringResource(R.string.btn_connect), fontSize = 22.sp, color = Color.White)
-                }
+                Text(text = stringResource(R.string.btn_connect), fontSize = 22.sp)
             }
 
-            Surface(
+            OutlinedButton(
                 onClick = onBack,
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = TvSurface,
-                    focusedContainerColor = TvAccent.copy(alpha = 0.3f)
-                ),
-                modifier = Modifier.height(56.dp)
+                contentPadding = PaddingValues(horizontal = 40.dp, vertical = 14.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxHeight().padding(horizontal = 40.dp, vertical = 12.dp)
-                ) {
-                    Text(text = stringResource(R.string.btn_back), fontSize = 22.sp, color = Color.White)
-                }
+                Text(text = stringResource(R.string.btn_back), fontSize = 22.sp)
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 
     LaunchedEffect(Unit) {
@@ -294,6 +280,15 @@ fun CredentialsScreen(
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
+private fun accentChipColors() = FilterChipDefaults.colors(
+    selectedContainerColor = TvAccent,
+    selectedContentColor = Color.White,
+    focusedSelectedContainerColor = TvAccent.copy(alpha = 0.8f),
+    focusedSelectedContentColor = Color.White
+)
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
 private fun OptionRow(
     options: List<String>,
     selectedIndex: Int,
@@ -301,26 +296,12 @@ private fun OptionRow(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEachIndexed { index, option ->
-            val isSelected = index == selectedIndex
-            Surface(
+            FilterChip(
+                selected = index == selectedIndex,
                 onClick = { onSelect(index) },
-                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = if (isSelected) TvAccent else TvSurface,
-                    focusedContainerColor = TvAccent.copy(alpha = if (isSelected) 1f else 0.5f)
-                ),
-                modifier = Modifier.height(44.dp)
+                colors = accentChipColors()
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxHeight().padding(horizontal = 20.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = option,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
+                Text(text = option, fontSize = 16.sp)
             }
         }
     }
@@ -412,5 +393,39 @@ private fun TvTextField(
                 }
             }
         }
+    }
+}
+
+@Preview(device = "id:tv_1080p", showBackground = true)
+@Composable
+private fun CredentialsScreenPreview() {
+    WifiEapTheme {
+        CredentialsScreen(
+            ssid = "Corp-WiFi",
+            isManualSsid = false,
+            formState = remember { CredentialsFormState().apply { username = "alice" } },
+            selectedCertName = null,
+            selectedCertUri = null,
+            onPickCertificate = {},
+            onConnect = { _, _, _, _, _, _, _, _ -> },
+            onBack = {}
+        )
+    }
+}
+
+@Preview(device = "id:tv_1080p", showBackground = true)
+@Composable
+private fun CredentialsScreenManualPreview() {
+    WifiEapTheme {
+        CredentialsScreen(
+            ssid = "",
+            isManualSsid = true,
+            formState = remember { CredentialsFormState() },
+            selectedCertName = null,
+            selectedCertUri = null,
+            onPickCertificate = {},
+            onConnect = { _, _, _, _, _, _, _, _ -> },
+            onBack = {}
+        )
     }
 }

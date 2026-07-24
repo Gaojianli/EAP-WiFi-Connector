@@ -28,6 +28,7 @@
     <string name="cert_select_file">选择文件</string>
     <string name="cert_none">不验证（首次信任）</string>
     <string name="cert_pick_prompt">点击选择证书文件</string>
+    <string name="show_password">显示密码</string>
     <string name="btn_connect">连接</string>
     <string name="btn_back">返回</string>
 
@@ -46,4 +47,5 @@
     <string name="permission_required">需要位置权限才能扫描 Wi-Fi 网络</string>
     <string name="error_domain_required">使用系统验证或不验证证书（TOFU）时必须填写域名 (Subject Match)</string>
     <string name="error_tofu_unsupported">当前系统版本不支持 Trust On First Use，请选择系统验证或自定义证书（需要 Android 12 及以上）</string>
+    <string name="no_file_picker">此设备未找到文件选择器，请安装文件管理器或改用系统证书验证</string>
 </resources>
